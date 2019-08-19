@@ -442,36 +442,38 @@ def parseSlices(csvFileName):
 	return slices
 
 
-bgAvailable = False
-cgmAvailable = False
-cgmAlertAvailable = False
-cgmCalibrationAvailable = False
-cgmMachineLearnerPredictionAvailable = False
-pumpCgmPredictionAvailable = False
-bolusCalculationAvailable = False
-heartRateAvailable = False
-deepSleepAvailable = False
-lightSleepAvailable = False
-remSleepAvailable = False
-autonomousSuspendAvailable = False
-basalAvailable = False
-bolusAvailable = False
-carbAvailable = False
+bgAvailable = Value('b', False)
+cgmAvailable = Value('b', False)
+cgmAlertAvailable = Value('b', False)
+cgmCalibrationAvailable = Value('b', False)
+cgmMachineLearnerPredictionAvailable = Value('b', False)
+pumpCgmPredictionAvailable = Value('b', False)
+bolusCalculationAvailable = Value('b', False)
+heartRateAvailable = Value('b', False)
+deepSleepAvailable = Value('b', False)
+lightSleepAvailable = Value('b', False)
+remSleepAvailable = Value('b', False)
+autonomousSuspendAvailable = Value('b', False)
+basalAvailable = Value('b', False)
+bolusAvailable = Value('b', False)
+carbAvailable = Value('b', False)
 
-rewindAvailable = False
-primeAvailable = False
-untrackedErrorAvailable = False
-timeSyncAvailable = False
-katErrAvailable = False
-exerciseAvailable = False
-cgmCalibrationErrorAvailable = False
-cgmConnectionErrorAvailable = False
-cgmSensorFinishedAvailable = False
-cgmSensorStartAvailable = False
-cgmTimeSyncAvailable = False
-pumpReservoirEmptyAvailable = False
+rewindAvailable = Value('b', False)
+primeAvailable = Value('b', False)
+untrackedErrorAvailable = Value('b', False)
+timeSyncAvailable = Value('b', False)
+katErrAvailable = Value('b', False)
+exerciseAvailable = Value('b', False)
+cgmCalibrationErrorAvailable = Value('b', False)
+cgmConnectionErrorAvailable = Value('b', False)
+cgmSensorFinishedAvailable = Value('b', False)
+cgmSensorStartAvailable = Value('b', False)
+cgmTimeSyncAvailable = Value('b', False)
+pumpReservoirEmptyAvailable = Value('b', False)
 
-ketonesAvailable = False
+ketonesAvailable = Value('b', False)
+
+seperateLegend = Value('b', False)
 
 def prepareDataset(dataset, config, beginDate, endDate):
 	global bgAvailable
@@ -627,7 +629,7 @@ def prepareDataset(dataset, config, beginDate, endDate):
 				plottingData['mlAnnotationsClass'].append(currentClass)
 		if d['basalValue']:
 			if config["plotBooleans"].getboolean("plotBasal"):
-				basalAvailable = True
+				basalAvailable.value = True
 			if prevBasalValue and prevBasalDate:
 				plottingData['basalTotal'] += (((tempDate - prevBasalDate).total_seconds() / 3600) * float(prevBasalValue))
 			prevBasalValue = d['basalValue']
@@ -636,7 +638,7 @@ def prepareDataset(dataset, config, beginDate, endDate):
 			plottingData['basalValuesY'].append(float(d['basalValue']))
 		if d['bolusValue']:
 			if config["plotBooleans"].getboolean("plotBolus"):
-				bolusAvailable = True
+				bolusAvailable.value = True
 			plottingData['bolusTotal'] += float(d['bolusValue'])
 			if "BOLUS_SQUARE" not in d['bolusAnnotation']:
 				bolusValuesX.append(tempDate)
@@ -648,26 +650,26 @@ def prepareDataset(dataset, config, beginDate, endDate):
 						plottingData['bolusSquareValuesY'].append(float((d['bolusValue'], re.split("=", a)[1])))
 		if d['mealValue']:
 			if config["plotBooleans"].getboolean("plotCarb"):
-				carbAvailable = True
+				carbAvailable.value = True
 			carbValuesX.append(tempDate)
 			carbValuesY.append(float(d['mealValue']))
 			plottingData['carbTotal'] += float(d['mealValue'])
 		if d['sleepAnnotation']:
 			if d['sleepAnnotation'] == "SLEEP_DEEP":
 				if config["plotBooleans"].getboolean("plotSleep"):
-					deepSleepAvailable = True
+					deepSleepAvailable.value = True
 				plottingData['sleepTouples'].append((tempDate, tempDate + datetime.timedelta(minutes=float(d['sleepValue'])), config["colors"].get("deepSleepColor")))
 			if d['sleepAnnotation'] == "SLEEP_LIGHT":
 				if config["plotBooleans"].getboolean("plotSleep"):
-					lightSleepAvailable = True
+					lightSleepAvailable.value = True
 				plottingData['sleepTouples'].append((tempDate, tempDate + datetime.timedelta(minutes=float(d['sleepValue'])), config["colors"].get("lightSleepColor")))
 			if d['sleepAnnotation'] == "SLEEP_REM":
 				if config["plotBooleans"].getboolean("plotSleep"):
-					remSleepAvailable = True
+					remSleepAvailable.value = True
 				plottingData['sleepTouples'].append((tempDate, tempDate + datetime.timedelta(minutes=float(d['sleepValue'])), config["colors"].get("remSleepColor")))
 		if d['cgmValue']:
 			if config["plotBooleans"].getboolean("plotCgm"):
-				cgmAvailable = True
+				cgmAvailable.value = True
 			if prevCgmDate and ((tempDate - prevCgmDate) > datetime.timedelta(minutes=config["limits"].getfloat("interruptLinePlotMinutes"))):
 				cgmIndex += 1
 				plottingData['cgmValuesX'].append([])
@@ -686,7 +688,7 @@ def prepareDataset(dataset, config, beginDate, endDate):
 				plottingData['mlAnnotationsY'][mlAnnotationIndex].append(float(d['cgmValue']))
 		if d['cgmAlertValue']:
 			if config["plotBooleans"].getboolean("plotCgm"):
-				cgmAlertAvailable = True
+				cgmAlertAvailable.value = True
 			plottingData['cgmAlertValuesX'].append(tempDate)
 			if float(d['cgmAlertValue']) > config["limits"].getfloat("bgCgmMaxValue"):
 				plottingData['cgmAlertValuesY'].append(config["limits"].getfloat("cgmBgHighLimit") - 1)
@@ -705,7 +707,7 @@ def prepareDataset(dataset, config, beginDate, endDate):
 		if d['bgValue']:
 			if not(d['glucoseAnnotation'] == "GLUCOSE_BG_MANUAL"):
 				if config["plotBooleans"].getboolean("plotBg"):
-					bgAvailable = True
+					bgAvailable.value = True
 				plottingData['bgValuesX'].append(tempDate)
 				if float(d['bgValue']) > config["limits"].getfloat("bgCgmMaxValue"):
 					plottingData['bgValuesY'].append(config["limits"].getfloat("cgmBgHighLimit") - 1)
@@ -720,34 +722,34 @@ def prepareDataset(dataset, config, beginDate, endDate):
 					cgmIndex += 1
 					plottingData['cgmValuesX'].append([])
 					plottingData['cgmValuesY'].append([])
-					cgmCalibrationErrorAvailable = True
+					cgmCalibrationErrorAvailable.value = True
 				if "CGM_CONNECTION_ERROR" in a:
 					plottingData['MarkerCgmConnectionErrorX'].append(tempDate)
 					plottingData['MarkerCgmConnectionErrorY'].append(1)
 					cgmIndex += 1
 					plottingData['cgmValuesX'].append([])
 					plottingData['cgmValuesY'].append([])
-					cgmConnectionErrorAvailable = True
+					cgmConnectionErrorAvailable.value = True
 				if "CGM_SENSOR_FINISHED" in a:
 					plottingData['MarkerCgmSensorFinishedX'].append(tempDate)
 					plottingData['MarkerCgmSensorFinishedY'].append(1)
 					cgmIndex += 1
 					plottingData['cgmValuesX'].append([])
 					plottingData['cgmValuesY'].append([])
-					cgmSensorFinishedAvailable = True
+					cgmSensorFinishedAvailable.value = True
 				if "CGM_SENSOR_START" in a:
 					plottingData['MarkerCgmSensorStartX'].append(tempDate)
 					plottingData['MarkerCgmSensorStartY'].append(1)
-					cgmSensorStartAvailable = True
+					cgmSensorStartAvailable.value = True
 				if "CGM_TIME_SYNC" in a:
 					plottingData['MarkerCgmTimeSyncX'].append(tempDate)
 					plottingData['MarkerCgmTimeSyncY'].append(1)
-					cgmTimeSyncAvailable = True
+					cgmTimeSyncAvailable.value = True
 				if "GLUCOSE_CGM_CALIBRATION" in a and not "CGM_CALIBRATION_ERROR" in a:
 					plottingData['cgmCalibrationValuesX'].append(tempDate)
 					plottingData['cgmCalibrationValuesY'].append(float(re.split("=", a)[1]))
 					if config["plotBooleans"].getboolean("plotCgm"):
-						cgmCalibrationAvailable = True
+						cgmCalibrationAvailable.value = True
 				if "GLUCOSE_ELEVATION_30" in a:
 					plottingData['glucoseElevationValuesX'].append(tempDate)
 					plottingData['glucoseElevationValuesY'].append(float(re.split("=", a)[1]))
@@ -758,12 +760,12 @@ def prepareDataset(dataset, config, beginDate, endDate):
 						plottingData['glucoseElevationValuesCGM'].append(float(d['cgmValue']))
 		if d['bolusCalculationValue']:
 			if config["plotBooleans"].getboolean("plotBolusCalculation"):
-				bolusCalculationAvailable = True
+				bolusCalculationAvailable.value = True
 			plottingData['bolusCalculationValuesX'].append(tempDate)
 			plottingData['bolusCalculationValuesY'].append(float(d['bolusCalculationValue']))
 		if d['heartRateValue']:
 			if config["plotBooleans"].getboolean("plotHeartRate"):
-				heartRateAvailable = True
+				heartRateAvailable.value = True
 			if prevHrDate and ((tempDate - prevHrDate) > datetime.timedelta(minutes=config["limits"].getfloat("interruptLinePlotMinutes"))):
 				hrIndex += 1
 				plottingData['heartRateValuesX'].append([])
@@ -775,33 +777,33 @@ def prepareDataset(dataset, config, beginDate, endDate):
 			if ("PUMP_REWIND" in d['pumpAnnotation']) or ("PUMP_FILL" in d['pumpAnnotation']): # PUMP_FILL is deprecated
 				plottingData['pumpRewindX'].append(tempDate)
 				plottingData['pumpRewindY'].append(1)
-				rewindAvailable = True
+				rewindAvailable.value = True
 			if "PUMP_PRIME" in d['pumpAnnotation']:
 				plottingData['pumpPrimeX'].append(tempDate)
 				plottingData['pumpPrimeY'].append(1)
-				primeAvailable = True
+				primeAvailable.value = True
 			if "PUMP_UNTRACKED_ERROR" in d['pumpAnnotation']:
 				plottingData['pumpUntrackedErrorX'].append(tempDate)
 				plottingData['pumpUntrackedErrorY'].append(1)
-				untrackedErrorAvailable = True
+				untrackedErrorAvailable.value = True
 			if "PUMP_TIME_SYNC" in d['pumpAnnotation']:
 				plottingData['pumpTimeSyncX'].append(tempDate)
 				plottingData['pumpTimeSyncY'].append(1)
-				timeSyncAvailable = True
+				timeSyncAvailable.value = True
 			if "PUMP_KATERR" in d['pumpAnnotation']:
 				plottingData['pumpKatErrX'].append(tempDate)
 				plottingData['pumpKatErrY'].append(1)
-				katErrAvailable = True
+				katErrAvailable.value = True
 			if "PUMP_RESERVOIR_EMPTY" in d['pumpAnnotation']:
 				plottingData['MarkerPumpReservoirEmptyX'].append(tempDate)
 				plottingData['MarkerPumpReservoirEmptyY'].append(1)
-				pumpReservoirEmptyAvailable = True
+				pumpReservoirEmptyAvailable.value = True
 			if "PUMP_AUTONOMOUS_SUSPEND" in d['pumpAnnotation']:
 				suspendTemp = tempDate
 			if "PUMP_UNSUSPEND" in d['pumpAnnotation']:
 				if suspendTemp:
 					if config["plotBooleans"].getboolean("plotAutonomousSuspend"):
-						autonomousSuspendAvailable = True
+						autonomousSuspendAvailable.value = True
 					plottingData['suspendTouples'].append((suspendTemp,tempDate))
 					suspendTemp = []
 		if d['exerciseTimeValue']:
@@ -829,7 +831,7 @@ def prepareDataset(dataset, config, beginDate, endDate):
 		elif d['exerciseAnnotation']:
 			plottingData['MarkerExerciseX'].append(tempDate)
 			plottingData['MarkerExerciseY'].append(1)
-			exerciseAvailable = True
+			exerciseAvailable.value = True
 		if d['stressValue']:
 			plottingData['stressX'].append(tempDate)
 			plottingData['stressY'].append(float(d['stressValue']))
@@ -838,7 +840,7 @@ def prepareDataset(dataset, config, beginDate, endDate):
 			plottingData['locationY'].append(d['locationAnnotation'])
 		if d['mlCgmValue']:
 			if config["plotBooleans"].getboolean("plotCgm"):
-				cgmMachineLearnerPredictionAvailable = True
+				cgmMachineLearnerPredictionAvailable.value = True
 			tempValue = ""
 			if len(re.split(":", d['mlCgmValue'])) <= config["limits"].getint("mlCgmArrayIndex"):
 				tempValue = re.split(":", d['mlCgmValue'])[0]
@@ -853,7 +855,7 @@ def prepareDataset(dataset, config, beginDate, endDate):
 			plottingData['mlCgmValuesY'][cgmMlIndex].append(float(tempValue))
 		if d['pumpCgmPredictionValue']:
 			if config["plotBooleans"].getboolean("plotCgm"):
-				pumpCgmPredictionAvailable = True
+				pumpCgmPredictionAvailable.value = True
 			if prevCgmMlDate and ((tempDate - prevCgmMlDate) > datetime.timedelta(minutes=config["limits"].getfloat("interruptLinePlotMinutes"))):
 				pumpCgmPredictionIndex += 1
 				plottingData['pumpCgmPredictionValuesX'].append([])
@@ -865,7 +867,7 @@ def prepareDataset(dataset, config, beginDate, endDate):
 			if ("KETONES_BLOOD" in d['otherAnnotation']) or ("KETONES_URINE" in d['otherAnnotation']):
 				plottingData['MarkerKetonesX'].append(tempDate)
 				plottingData['MarkerKetonesY'].append(1)
-				ketonesAvailable = True
+				ketonesAvailable.value = True
 			annotations = re.split(config["axisLabels"].get("delimiter"), d['otherAnnotation'])
 			for a in annotations:
 				if re.split("=", a)[0] == "USER_TEXT":
@@ -1000,15 +1002,20 @@ def prepareDataset(dataset, config, beginDate, endDate):
 
 	return plottingData
 
-dayCounter = {}
+manager = multiprocessing.Manager()
+
+dayCounter = manager.dict()
+plotCounter = manager.dict()
 plotCounter = {"SLICE_DAILYSTATISTICS":0, "SLICE_DAILY":0, "SLICE_TINY":0, "SLICE_NORMAL":0, "SLICE_BIG":0}
+
 
 # plotType: might be SLICE_TINY, SLICE_NORMAL, SLICE_BIG or SLICE_DAILY
 
-def plot(dataset, config, outPath, beginDate, duration, plotType, extLegend, limits, dailyNotes):
+def plot(dataset, config, outPath, beginDate, duration, plotType, extLegend, limits, dailyNotes, dayCounter, plotCounter):
 	plt.close()
-	global dayCounter
-	global plotCounter
+	#global dayCounter
+	#global plotCounter
+	global seperateLegend
 
 	datasubset = dataSubset(dataset, beginDate, duration)
 	endDate = beginDate + datetime.timedelta(minutes=duration) - datetime.timedelta(seconds=1.0)
@@ -1698,7 +1705,7 @@ def plot(dataset, config, outPath, beginDate, duration, plotType, extLegend, lim
 		handles.append(carbBars)
 		labels.append(config["legendLabels"].get("carbLegend"))
 
-	if len(handles) > 0 and plotType == "SLICE_DAILY":
+	if len(handles) > 0 and plotType == "SLICE_DAILY" and not seperateLegend.value:
 		if (plotCounter[plotType] % 3) == 0 or extLegend:
 			dailyLegend = fig.legend(handles, labels, loc="upper left",
 									 bbox_to_anchor=[axbox.x0 + xOffset, axbox.y0 + yOffset], fontsize=10,
@@ -2355,43 +2362,43 @@ def generateSymbolsLegend(config, outPath):
 	handles = []
 	labels = []
 
-	if rewindAvailable:
+	if rewindAvailable.value:
 		handles.append(rewindPlot)
 		labels.append(config["symbolLabels"].get("pumpRewindLegend"))
-	if primeAvailable:
+	if primeAvailable.value:
 		handles.append(primePlot)
 		labels.append(config["symbolLabels"].get("pumpPrimeLegend"))
-	if untrackedErrorAvailable:
+	if untrackedErrorAvailable.value:
 		handles.append(untrackedErrorPlot)
 		labels.append(config["symbolLabels"].get("pumpUntrackedErrorLegend"))
-	if timeSyncAvailable:
+	if timeSyncAvailable.value:
 		handles.append(timeSyncPlot)
 		labels.append(config["symbolLabels"].get("pumpTimeSyncLegend"))
-	if katErrAvailable:
+	if katErrAvailable.value:
 		handles.append(katErrPlot)
 		labels.append(config["symbolLabels"].get("pumpKatErrLegend"))
-	if exerciseAvailable:
+	if exerciseAvailable.value:
 		handles.append(exercisePlot)
 		labels.append(config["symbolLabels"].get("exerciseLegend"))
-	if cgmCalibrationErrorAvailable:
+	if cgmCalibrationErrorAvailable.value:
 		handles.append(cgmCalibrationErrorPlot)
 		labels.append(config["symbolLabels"].get("cgmCalibrationErrorLegend"))
-	if cgmConnectionErrorAvailable:
+	if cgmConnectionErrorAvailable.value:
 		handles.append(cgmConnectionErrorPlot)
 		labels.append(config["symbolLabels"].get("cgmConnectionErrorLegend"))
-	if cgmSensorFinishedAvailable:
+	if cgmSensorFinishedAvailable.value:
 		handles.append(cgmSensorFinishedPlot)
 		labels.append(config["symbolLabels"].get("cgmSensorFinishedLegend"))
-	if cgmSensorStartAvailable:
+	if cgmSensorStartAvailable.value:
 		handles.append(cgmSensorStartPlot)
 		labels.append(config["symbolLabels"].get("cgmSensorStartLegend"))
-	if cgmTimeSyncAvailable:
+	if cgmTimeSyncAvailable.value:
 		handles.append(cgmTimeSyncPlot)
 		labels.append(config["symbolLabels"].get("cgmTimeSyncLegend"))
-	if pumpReservoirEmptyAvailable:
+	if pumpReservoirEmptyAvailable.value:
 		handles.append(pumpReservoirEmptyPlot)
 		labels.append(config["symbolLabels"].get("pumpReservoirEmptyLegend"))
-	if ketonesAvailable:
+	if ketonesAvailable.value:
 		handles.append(ketonesPlot)
 		labels.append(config["symbolLabels"].get("ketonesLegend"))
 
@@ -2481,31 +2488,31 @@ def generateSeperateLegend(config, outPath):
 	handles = []
 	labels = []
 
-	if bgAvailable:
+	if bgAvailable.value:
 		handles.append(bgPlot)
 		labels.append(config["legendLabels"].get("bgLegend"))
-	if cgmAvailable:
+	if cgmAvailable.value:
 		handles.append(cgmPlot)
 		labels.append(config["legendLabels"].get("cgmLegend"))
-	if cgmAlertAvailable:
+	if cgmAlertAvailable.value:
 		handles.append(cgmAlertPlot)
 		labels.append(config["legendLabels"].get("cgmAlertLegend"))
-	if cgmCalibrationAvailable:
+	if cgmCalibrationAvailable.value:
 		handles.append(cgmCalibrationPlot)
 		labels.append(config["legendLabels"].get("cgmCalibrationLegend"))
-	if cgmMachineLearnerPredictionAvailable:
+	if cgmMachineLearnerPredictionAvailable.value:
 		handles.append(mlCgmPlot)
 		labels.append(config["legendLabels"].get("mlCgmLegend"))
-	if pumpCgmPredictionAvailable:
+	if pumpCgmPredictionAvailable.value:
 		handles.append(pumpCgmPredictionPlot)
 		labels.append(config["legendLabels"].get("pumpCgmPredictionLegend"))
-	if bolusCalculationAvailable:
+	if bolusCalculationAvailable.value:
 		handles.append(bolusCalculationPlot)
 		labels.append(config["legendLabels"].get("bolusCalculationLegend"))
-	if heartRateAvailable:
+	if heartRateAvailable.value:
 		handles.append(heartRatePlot)
 		labels.append(config["legendLabels"].get("heartRateLegend"))
-	if deepSleepAvailable:
+	if deepSleepAvailable.value:
 		handles.append(patches.Rectangle(
 			(0, 0),  # (x,y)
 			1,  # width
@@ -2514,7 +2521,7 @@ def generateSeperateLegend(config, outPath):
 			alpha=1.0
 		))
 		labels.append(config["sleepLabel"].get("deepSleepLabel"))
-	if lightSleepAvailable:
+	if lightSleepAvailable.value:
 		handles.append(patches.Rectangle(
 			(0, 0),  # (x,y)
 			1,  # width
@@ -2524,7 +2531,7 @@ def generateSeperateLegend(config, outPath):
 		))
 
 		labels.append(config["sleepLabel"].get("lightSleepLabel"))
-	if remSleepAvailable:
+	if remSleepAvailable.value:
 		handles.append(patches.Rectangle(
 			(0, 0),  # (x,y)
 			1,  # width
@@ -2534,7 +2541,7 @@ def generateSeperateLegend(config, outPath):
 		))
 
 		labels.append(config["sleepLabel"].get("remSleepLabel"))
-	if autonomousSuspendAvailable:
+	if autonomousSuspendAvailable.value:
 		handles.append(patches.Rectangle(
 				(0, 0),  # (x,y)
 				1,  # width
@@ -2543,10 +2550,10 @@ def generateSeperateLegend(config, outPath):
 				alpha=0.5
 			))
 		labels.append(config["legendLabels"].get("autonomousSuspendLegend"))
-	if basalAvailable:
+	if basalAvailable.value:
 		handles.append(basalPlot)
 		labels.append(config["legendLabels"].get("basalLegend"))
-	if bolusAvailable:
+	if bolusAvailable.value:
 		handles.append(patches.Rectangle(
 				(0, 0),  # (x,y)
 				1,  # width
@@ -2556,7 +2563,7 @@ def generateSeperateLegend(config, outPath):
 			))
 		labels.append(config["legendLabels"].get("bolusLegend"))
 
-	if carbAvailable:
+	if carbAvailable.value:
 		handles.append(patches.Rectangle(
 			(0, 0),  # (x,y)
 			1,  # width
@@ -2583,13 +2590,15 @@ def generateSeperateLegend(config, outPath):
 	plt.close()
 
 numberOfPlots = 0.0
-sharedProgressCounter = Value('d', 0.0);
+sharedProgressCounter = Value('d', 0.0)
 
 def plotDaily(d, dataset, config, outPath, limits, finishedPlotsDaily, finishedNotesDaily):
 	global numberOfPlots
 	global sharedProgressCounter
+	global dayCounter
+	global plotCounter
 
-	tempPlot = plot(dataset, config, outPath, dateParser(d['date'], '00:00'), 1440.0, "SLICE_DAILY", False, limits, False)
+	tempPlot = plot(dataset, config, outPath, dateParser(d['date'], '00:00'), 1440.0, "SLICE_DAILY", False, limits, False, dayCounter, plotCounter)
 	finishedPlotsDaily.append({'filename': tempPlot['filename'], 'timestamp': dateParser(d['date'], '00:00')})
 	finishedNotesDaily.append(tempPlot['dailyNotes'])
 	with sharedProgressCounter.get_lock():
@@ -2599,8 +2608,10 @@ def plotDaily(d, dataset, config, outPath, limits, finishedPlotsDaily, finishedN
 def plotTinySlices(s, dataset, config, outPath, limits, finishedPlotsTinySlices):
 	global numberOfPlots
 	global sharedProgressCounter
+	global dayCounter
+	global plotCounter
 	
-	finishedPlotsTinySlices.append({'filename': plot(dataset, config, outPath, dateParser(s['date'], s['time']), float(s['duration']), "SLICE_TINY", False, limits, False)['filename'], 'timestamp': dateParser(s['date'], s['time'])})
+	finishedPlotsTinySlices.append({'filename': plot(dataset, config, outPath, dateParser(s['date'], s['time']), float(s['duration']), "SLICE_TINY", False, limits, False, dayCounter, plotCounter)['filename'], 'timestamp': dateParser(s['date'], s['time'])})
 	with sharedProgressCounter.get_lock():
 		sharedProgressCounter.value += 1
 	print(str('{0:.2f}'.format(float(sharedProgressCounter.value / numberOfPlots) * 100)) + " %")
@@ -2608,8 +2619,10 @@ def plotTinySlices(s, dataset, config, outPath, limits, finishedPlotsTinySlices)
 def plotNormalSlices(s, dataset, config, outPath, limits, finishedPlotsNormalSlices):
 	global numberOfPlots
 	global sharedProgressCounter
+	global dayCounter
+	global plotCounter
 	
-	finishedPlotsNormalSlices.append({'filename': plot(dataset, config, outPath, dateParser(s['date'], s['time']), float(s['duration']), "SLICE_NORMAL", False, limits, False)['filename'], 'timestamp': dateParser(s['date'], s['time'])})
+	finishedPlotsNormalSlices.append({'filename': plot(dataset, config, outPath, dateParser(s['date'], s['time']), float(s['duration']), "SLICE_NORMAL", False, limits, False, dayCounter, plotCounter)['filename'], 'timestamp': dateParser(s['date'], s['time'])})
 	with sharedProgressCounter.get_lock():
 		sharedProgressCounter.value += 1
 	print(str('{0:.2f}'.format(float(sharedProgressCounter.value / numberOfPlots) * 100)) + " %")
@@ -2617,8 +2630,10 @@ def plotNormalSlices(s, dataset, config, outPath, limits, finishedPlotsNormalSli
 def plotBigSlices(s, dataset, config, outPath, limits, finishedPlotsBigSlices):
 	global numberOfPlots
 	global sharedProgressCounter
-
-	finishedPlotsBigSlices.append({'filename': plot(dataset, config, outPath, dateParser(s['date'], s['time']), float(s['duration']), "SLICE_BIG", False, limits, False)['filename'], 'timestamp': dateParser(s['date'], s['time'])})
+	global dayCounter
+	global plotCounter
+	
+	finishedPlotsBigSlices.append({'filename': plot(dataset, config, outPath, dateParser(s['date'], s['time']), float(s['duration']), "SLICE_BIG", False, limits, False, dayCounter, plotCounter)['filename'], 'timestamp': dateParser(s['date'], s['time'])})
 	with sharedProgressCounter.get_lock():
 		sharedProgressCounter.value += 1
 	print(str('{0:.2f}'.format(float(sharedProgressCounter.value / numberOfPlots) * 100)) + " %")
@@ -2626,6 +2641,9 @@ def plotBigSlices(s, dataset, config, outPath, limits, finishedPlotsBigSlices):
 def main():
 	global numberOfPlots
 	global sharedProgressCounter
+	global seperateLegend
+	global dayCounter
+	global plotCounter
 
 	os.environ["MATPLOTLIBDATA"] = ""
 
@@ -2667,6 +2685,8 @@ def main():
 
 	if options.instances:
 		instances = options.instances
+	if options.seperatelegend:
+		seperateLegend.value = options.seperatelegend
 
 	if len(sys.argv) == 1:
 		parser.print_help()
@@ -2847,7 +2867,7 @@ def main():
 		for d in dataset:
 			if d['date'] != tempDate:
 				tempDate = d['date']
-				tempPlot = plot(dataset, config, outPath, dateParser(d['date'], '00:00'), 1440.0, "SLICE_DAILYSTATISTICS", False, limits, True)
+				tempPlot = plot(dataset, config, outPath, dateParser(d['date'], '00:00'), 1440.0, "SLICE_DAILYSTATISTICS", False, limits, True, dayCounter, plotCounter)
 				finishedPlotsDailyStatistics.append({'filename': tempPlot['filename'], 'timestamp': dateParser(d['date'], '00:00')})
 				finishedNotesDaily.append(tempPlot['dailyNotes'])
 				sharedProgressCounter.value += 1
@@ -2875,7 +2895,7 @@ def main():
 		with open(absPath("legend-dataset-v10.csv"), 'r') as csvfile:
 			legendDataset = parseDatasetDepricated(csvfile)
 		limits = findLimits(legendDataset, config)
-		legendFilename = plot(legendDataset, config, outPath, dateParser(legendDataset[0]['date'], legendDataset[0]['time']), 1440.0, "SLICE_DAILY", True, limits, False)['filename']
+		legendFilename = plot(legendDataset, config, outPath, dateParser(legendDataset[0]['date'], legendDataset[0]['time']), 1440.0, "SLICE_DAILY", True, limits, False, dayCounter, plotCounter)['filename']
 		sharedProgressCounter.value += 1
 		print(str('{0:.2f}'.format(float(sharedProgressCounter.value / numberOfPlots) * 100)) + " %")
 
@@ -2901,7 +2921,8 @@ def main():
 			shutil.copy2(absPath("tex_s_titlePage.tex"), outPath)
 			shutil.copy2(absPath("tex_s_legendText.tex"), outPath)
 
-	generateSeperateLegend(config, outPath)
+	if seperateLegend.value:
+		generateSeperateLegend(config, outPath)
 
 
 if __name__ == '__main__':	
