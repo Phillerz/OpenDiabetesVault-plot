@@ -16,6 +16,9 @@
 from numpy.distutils.exec_command import temp_file_name
 
 try:
+	from multiprocessing import Pool, Value
+	import multiprocessing
+	from functools import partial
 	import csv
 	import datetime
 	import iso8601
@@ -957,7 +960,7 @@ def prepareDataset(dataset, config, beginDate, endDate):
 				currentCount += 1
 		if currentCount > 0:
 			plottingData['mergedBolusX'].append(dates.date2num(dateI))
-			plottingData['mergedBolusY'].append(currentMerge / currentCount)
+			plottingData['mergedBolusY'].append((currentMerge / currentCount)/10.0)
 		currentMerge = 0.0
 		currentCount = 0
 
@@ -968,7 +971,7 @@ def prepareDataset(dataset, config, beginDate, endDate):
 				currentCount += 1
 		if currentCount > 0:
 			plottingData['mergedCarbX'].append(dates.date2num(dateI))
-			plottingData['mergedCarbY'].append(currentMerge / currentCount)
+			plottingData['mergedCarbY'].append((currentMerge / currentCount)/10.0)
 		currentMerge = 0.0
 		currentCount = 0
 		dateI = dateI + datetime.timedelta(minutes=mergeTimespan)
@@ -1263,7 +1266,10 @@ def plot(dataset, config, outPath, beginDate, duration, plotType, extLegend, lim
 			)
 
 	if config["plotBooleans"].getboolean("plotCarb") or config["plotBooleans"].getboolean("plotBolus"):
-		axBarPlots.set_ylabel(config["axisLabels"].get("bolusLabel"))
+		if config["plotBooleans"].getboolean("showBE"):
+			axBarPlots.set_ylabel(config["axisLabels"].get("bolusBELabel"))
+		else:
+			axBarPlots.set_ylabel(config["axisLabels"].get("bolusGLabel"))
 
 		axBarPlots.spines['top'].set_visible(False)
 		axBarPlots.xaxis.set_ticks_position('bottom')
@@ -2120,7 +2126,7 @@ def plot(dataset, config, outPath, beginDate, duration, plotType, extLegend, lim
 	else:
 		fig.set_size_inches(8.27 * scale * sliceWidth, 11.69 / 3 * scale)
 
-	plt.savefig(os.path.join(outPath, filename), transparent=True)
+	plt.savefig(os.path.join(outPath, filename), transparent=False)
 	plt.clf()
 	########## Generate filename and save fig ##########
 
@@ -2576,13 +2582,59 @@ def generateSeperateLegend(config, outPath):
 	plt.savefig(os.path.join(outPath, config["fileSettings"].get("legendFileSeperate")), bbox_inches=bbox, transparent=True)
 	plt.close()
 
+numberOfPlots = 0.0
+sharedProgressCounter = Value('d', 0.0);
+
+def plotDaily(d, dataset, config, outPath, limits, finishedPlotsDaily, finishedNotesDaily):
+	global numberOfPlots
+	global sharedProgressCounter
+
+	tempPlot = plot(dataset, config, outPath, dateParser(d['date'], '00:00'), 1440.0, "SLICE_DAILY", False, limits, False)
+	finishedPlotsDaily.append({'filename': tempPlot['filename'], 'timestamp': dateParser(d['date'], '00:00')})
+	finishedNotesDaily.append(tempPlot['dailyNotes'])
+	with sharedProgressCounter.get_lock():
+		sharedProgressCounter.value += 1
+	print(str('{0:.2f}'.format(float(sharedProgressCounter.value / numberOfPlots) * 100)) + " %")
+
+def plotTinySlices(s, dataset, config, outPath, limits, finishedPlotsTinySlices):
+	global numberOfPlots
+	global sharedProgressCounter
+	
+	finishedPlotsTinySlices.append({'filename': plot(dataset, config, outPath, dateParser(s['date'], s['time']), float(s['duration']), "SLICE_TINY", False, limits, False)['filename'], 'timestamp': dateParser(s['date'], s['time'])})
+	with sharedProgressCounter.get_lock():
+		sharedProgressCounter.value += 1
+	print(str('{0:.2f}'.format(float(sharedProgressCounter.value / numberOfPlots) * 100)) + " %")
+
+def plotNormalSlices(s, dataset, config, outPath, limits, finishedPlotsNormalSlices):
+	global numberOfPlots
+	global sharedProgressCounter
+	
+	finishedPlotsNormalSlices.append({'filename': plot(dataset, config, outPath, dateParser(s['date'], s['time']), float(s['duration']), "SLICE_NORMAL", False, limits, False)['filename'], 'timestamp': dateParser(s['date'], s['time'])})
+	with sharedProgressCounter.get_lock():
+		sharedProgressCounter.value += 1
+	print(str('{0:.2f}'.format(float(sharedProgressCounter.value / numberOfPlots) * 100)) + " %")
+
+def plotBigSlices(s, dataset, config, outPath, limits, finishedPlotsBigSlices):
+	global numberOfPlots
+	global sharedProgressCounter
+
+	finishedPlotsBigSlices.append({'filename': plot(dataset, config, outPath, dateParser(s['date'], s['time']), float(s['duration']), "SLICE_BIG", False, limits, False)['filename'], 'timestamp': dateParser(s['date'], s['time'])})
+	with sharedProgressCounter.get_lock():
+		sharedProgressCounter.value += 1
+	print(str('{0:.2f}'.format(float(sharedProgressCounter.value / numberOfPlots) * 100)) + " %")
+
 def main():
+	global numberOfPlots
+	global sharedProgressCounter
+
 	os.environ["MATPLOTLIBDATA"] = ""
 
 	versionString = "OpenDiabetesVault-Plot v2.0"
 	outPath = os.getcwd()
 	csvFileName = ""
 	dataset = ""
+	
+	instances = multiprocessing.cpu_count()
 
 	parser = OptionParser(usage="%prog [OPTION] [FILE ..]", version=versionString, description=versionString)
 
@@ -2600,6 +2652,8 @@ def main():
 					  help="FILE specifies slice annotations. Activates slice plot (2 per Line).")
 	parser.add_option("-b", "--slice-big", dest="slicebig", metavar="FILE",
 					  help="FILE specifies slice annotations. Activates slice plot (1 per Line).")
+	parser.add_option("-i", "--instances", type="int", dest="instances",
+					  help="Specifies the amount of parallel instances that the script spwans. By default this value is set to the available threads on the machine.")
 	parser.add_option("-l", "--legend", dest="legend", action="store_true",
 					  help="Activates legend plot.")
 	parser.add_option("-T", "--tex", dest="tex", action="store_true",
@@ -2610,6 +2664,9 @@ def main():
 					  help="PATH specifies the output path for generated files. [Default: ./]")
 
 	(options, args) = parser.parse_args()
+
+	if options.instances:
+		instances = options.instances
 
 	if len(sys.argv) == 1:
 		parser.print_help()
@@ -2695,7 +2752,7 @@ def main():
 	limits = findLimits(dataset, config)
 
 	numberOfPlots = 0.0
-	progressCounter = 0.0
+	sharedProgressCounter.value = 0.0
 
 	headLineDailyStatistics = ""
 	headLineDaily = ""
@@ -2793,40 +2850,34 @@ def main():
 				tempPlot = plot(dataset, config, outPath, dateParser(d['date'], '00:00'), 1440.0, "SLICE_DAILYSTATISTICS", False, limits, True)
 				finishedPlotsDailyStatistics.append({'filename': tempPlot['filename'], 'timestamp': dateParser(d['date'], '00:00')})
 				finishedNotesDaily.append(tempPlot['dailyNotes'])
-				progressCounter += 1
-				print(str('{0:.2f}'.format(float(progressCounter / numberOfPlots) * 100)) + " %")
+				sharedProgressCounter.value += 1
+				print(str('{0:.2f}'.format(float(sharedProgressCounter.value / numberOfPlots) * 100)) + " %")
 	if options.daily:
 		tempDate = ""
+		beginDates = []
 		for d in dataset:
 			if d['date'] != tempDate:
+				beginDates.append(d)
 				tempDate = d['date']
-				tempPlot = plot(dataset, config, outPath, dateParser(d['date'], '00:00'), 1440.0, "SLICE_DAILY", False, limits, False)
-				finishedPlotsDaily.append({'filename': tempPlot['filename'], 'timestamp': dateParser(d['date'], '00:00')})
-				finishedNotesDaily.append(tempPlot['dailyNotes'])
-				progressCounter += 1
-				print(str('{0:.2f}'.format(float(progressCounter / numberOfPlots) * 100)) + " %")
+		
+		p = Pool(instances)
+		p.map(partial(plotDaily, dataset=dataset, config=config, outPath=outPath, limits=limits, finishedPlotsDaily=finishedPlotsDaily, finishedNotesDaily=finishedNotesDaily), beginDates)
 	if options.slicetiny:
-		for s in datasetTinySlices:
-			finishedPlotsTinySlices.append({'filename': plot(dataset, config, outPath, dateParser(s['date'], s['time']), float(s['duration']), "SLICE_TINY", False, limits, False)['filename'], 'timestamp': dateParser(s['date'], s['time'])})
-			progressCounter += 1
-			print(str('{0:.2f}'.format(float(progressCounter / numberOfPlots) * 100)) + " %")
+		p = Pool(instances)
+		p.map(partial(plotTinySlices, dataset=dataset, config=config, outPath=outPath, limits=limits, finishedPlotsTinySlices=finishedPlotsTinySlices), datasetTinySlices)
 	if options.slicenormal:
-		for s in datasetNormalSlices:
-			finishedPlotsNormalSlices.append({'filename': plot(dataset, config, outPath, dateParser(s['date'], s['time']), float(s['duration']), "SLICE_NORMAL", False, limits, False)['filename'], 'timestamp': dateParser(s['date'], s['time'])})
-			progressCounter += 1
-			print(str('{0:.2f}'.format(float(progressCounter / numberOfPlots) * 100)) + " %")
+		p = Pool(instances)
+		p.map(partial(plotNormalSlices, dataset=dataset, config=config, outPath=outPath, limits=limits, finishedPlotsNormalSlices=finishedPlotsNormalSlices), datasetNormalSlices)
 	if options.slicebig:
-		for s in datasetBigSlices:
-			finishedPlotsBigSlices.append({'filename': plot(dataset, config, outPath, dateParser(s['date'], s['time']), float(s['duration']), "SLICE_BIG", False, limits, False)['filename'], 'timestamp': dateParser(s['date'], s['time'])})
-			progressCounter += 1
-			print(str('{0:.2f}'.format(float(progressCounter / numberOfPlots) * 100)) + " %")
+		p = Pool(instances)
+		p.map(partial(plotBigSlices, dataset=dataset, config=config, outPath=outPath, limits=limits, finishedPlotsBigSlices=finishedPlotsBigSlices), datasetBigSlices)
 	if options.legend:
 		with open(absPath("legend-dataset-v10.csv"), 'r') as csvfile:
 			legendDataset = parseDatasetDepricated(csvfile)
 		limits = findLimits(legendDataset, config)
 		legendFilename = plot(legendDataset, config, outPath, dateParser(legendDataset[0]['date'], legendDataset[0]['time']), 1440.0, "SLICE_DAILY", True, limits, False)['filename']
-		progressCounter += 1
-		print(str('{0:.2f}'.format(float(progressCounter / numberOfPlots) * 100)) + " %")
+		sharedProgressCounter.value += 1
+		print(str('{0:.2f}'.format(float(sharedProgressCounter.value / numberOfPlots) * 100)) + " %")
 
 	generateSymbolsLegend(config, outPath)
 
