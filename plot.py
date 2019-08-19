@@ -46,7 +46,7 @@ except ImportError as err:
 # const
 # TODO check required fields only
 
-csvDataFormat = ['date','time','bgValue','cgmValue','cgmRawValue','cgmAlertValue','glucoseAnnotation','basalValue','basalAnnotation','bolusValue','bolusAnnotation','bolusCalculationValue','mealValue','pumpAnnotation','exerciseTimeValue','exerciseAnnotation','heartRateValue','heartRateVariabilityValue','stressBalanceValue','stressValue','sleepValue','sleepAnnotation','locationAnnotation', 'mlCgmValue', 'pumpCgmPredictionValue', 'otherAnnotation', 'weight', 'bloodPressure', 'tag']
+csvDataFormat = ['date','time','bgValue','cgmValue','cgmRawValue','cgmAlertValue','glucoseAnnotation','basalValue','basalAnnotation','bolusValue','bolusAnnotation','bolusCalculationValue','mealValue','pumpAnnotation','exerciseTimeValue','exerciseAnnotation','heartRateValue','heartRateVariabilityValue','stressBalanceValue','stressValue','sleepValue','sleepAnnotation','locationAnnotation', 'mlCgmValue', 'pumpCgmPredictionValue', 'otherAnnotation', 'weight', 'bloodPressure', 'tag', 'cgmPredictionTemporalSpacing', 'cgmPredictionList']
 slicesDataFormat = ['date','time','duration','type','filter']
 
 genericsColors = {'cgmGenerics':{}, 'bolusCalculationGenerics':{}, 'bolusGenerics':{}, 'basalGenerics': {}, 'symbolGenerics': {}}
@@ -111,7 +111,7 @@ def parseDataset(csvfile):
 		date = '{:%d.%m.%y}'.format(timestamp)
 		time = '{:%H:%M}'.format(timestamp)
 		
-		tmpEntry = {"date": date, "time": time, "bgValue": '', "cgmValue": '', "cgmRawValue": '', "cgmAlertValue": '', "pumpCgmPredictionValue": '', "glucoseAnnotation": '', "basalValue": '', "basalAnnotation": '', "bolusValue": '', "bolusAnnotation": 'BOLUS_NORMAL', "bolusCalculationValue": '', "mealValue": '', "pumpAnnotation": '', "exerciseTimeValue": '', "exerciseAnnotation": '', "heartRateValue": '', "heartRateVariabilityValue": '', "stressBalanceValue": '', "stressValue": '', "sleepValue": '', "sleepAnnotation": '', "locationAnnotation": '', "mlCgmValue": '', "mlAnnotation": '', "otherAnnotation": '', "weight": '', "bloodPressure": '', "tag": ''}
+		tmpEntry = {"date": date, "time": time, "bgValue": '', "cgmValue": '', "cgmRawValue": '', "cgmAlertValue": '', "pumpCgmPredictionValue": '', "glucoseAnnotation": '', "basalValue": '', "basalAnnotation": '', "bolusValue": '', "bolusAnnotation": 'BOLUS_NORMAL', "bolusCalculationValue": '', "mealValue": '', "pumpAnnotation": '', "exerciseTimeValue": '', "exerciseAnnotation": '', "heartRateValue": '', "heartRateVariabilityValue": '', "stressBalanceValue": '', "stressValue": '', "sleepValue": '', "sleepAnnotation": '', "locationAnnotation": '', "mlCgmValue": '', "mlAnnotation": '', "otherAnnotation": '', "weight": '', "bloodPressure": '', "tag": '', 'cgmPredictionTemporalSpacing': '', 'cgmPredictionList': ''}
 		
 		# check type
 		if(row[1] == "BOLUS_NORMAL"):
@@ -250,6 +250,11 @@ def parseDataset(csvfile):
 		if(row[1] == "TAG"):
 			tmpEntry['tag'] = row[3]
 		
+		
+		# refined types
+		if(row[1] == "CGM_PREDICTION"):
+			tmpEntry['cgmPredictionTemporalSpacing'] = row[2]
+			tmpEntry['cgmPredictionList'] = row[3]
 		# add temporary entry to dataset
 		dataset.append(tmpEntry)
 	
@@ -279,7 +284,7 @@ def dataSubset(dataset, beginDate, duration):
 							   'heartRateVariabilityValue': '', 'date': beginDate.strftime("%d.%m.%y"),
 							   'stressBalanceValue': '', 'glucoseAnnotation': '', 'bgValue': '',
 							   'exerciseTimeValue': '', 'time': '00:00', 'sleepAnnotation': d['locationAnnotation'], 'mlCgmValue': '', 'pumpCgmPredictionValue': '',
-							   'otherAnnotation': '', 'mlAnnotation': '', "weight": '', "bloodPressure": '', "tag": ''}
+							   'otherAnnotation': '', 'mlAnnotation': '', "weight": '', "bloodPressure": '', "tag": '', 'cgmPredictionTemporalSpacing': '', 'cgmPredictionList': ''}
 				cacheValuesExist = True
 			if d['stressValue']:
 				stressCache = {'pumpAnnotation': '', 'cgmAlertValue': '', 'mealValue': '', 'basalValue': '',
@@ -289,7 +294,7 @@ def dataSubset(dataset, beginDate, duration):
 							   'heartRateVariabilityValue': '', 'date': beginDate.strftime("%d.%m.%y"),
 							   'stressBalanceValue': '', 'glucoseAnnotation': '', 'bgValue': '',
 							   'exerciseTimeValue': '', 'time': '00:00', 'sleepAnnotation': '', 'mlCgmValue': '', 'pumpCgmPredictionValue': '',
-							   'otherAnnotation': '', 'mlAnnotation': '', "weight": '', "bloodPressure": '', "tag": ''}
+							   'otherAnnotation': '', 'mlAnnotation': '', "weight": '', "bloodPressure": '', "tag": '', 'cgmPredictionTemporalSpacing': '', 'cgmPredictionList': ''}
 				cacheValuesExist = True
 			if d['sleepAnnotation']:
 				if dateParser(d['date'], d['time']) + datetime.timedelta(minutes=float(d['sleepValue'])) > beginDate:
@@ -300,7 +305,7 @@ def dataSubset(dataset, beginDate, duration):
 								   'heartRateVariabilityValue': '', 'date': beginDate.strftime("%d.%m.%y"),
 								   'stressBalanceValue': '', 'glucoseAnnotation': '', 'bgValue': '',
 								   'exerciseTimeValue': '', 'time': '00:00', 'sleepAnnotation': d['sleepAnnotation'], 'mlCgmValue': '', 'pumpCgmPredictionValue': '',
-								   'otherAnnotation': '', 'mlAnnotation': '', "weight": '', "bloodPressure": '', "tag": ''}
+								   'otherAnnotation': '', 'mlAnnotation': '', "weight": '', "bloodPressure": '', "tag": '', 'cgmPredictionTemporalSpacing': '', 'cgmPredictionList': ''}
 				cacheValuesExist = True
 			if d['basalValue']:
 				basalCache = {'pumpAnnotation': '', 'cgmAlertValue': '', 'mealValue': '', 'basalValue': d['basalValue'],
@@ -310,7 +315,7 @@ def dataSubset(dataset, beginDate, duration):
 							   'heartRateVariabilityValue': '', 'date': beginDate.strftime("%d.%m.%y"),
 							   'stressBalanceValue': '', 'glucoseAnnotation': '', 'bgValue': '',
 							   'exerciseTimeValue': '', 'time': '00:00', 'sleepAnnotation': '', 'mlCgmValue': '', 'pumpCgmPredictionValue': '',
-							   'otherAnnotation': '', 'mlAnnotation': '', "weight": '', "bloodPressure": '', "tag": ''}
+							   'otherAnnotation': '', 'mlAnnotation': '', "weight": '', "bloodPressure": '', "tag": '', 'cgmPredictionTemporalSpacing': '', 'cgmPredictionList': ''}
 				cacheValuesExist = True
 			if d['exerciseAnnotation']:
 				if d['exerciseTimeValue'] and dateParser(d['date'], d['time']) + datetime.timedelta(minutes=float(d['exerciseTimeValue'])) > beginDate:
@@ -322,7 +327,7 @@ def dataSubset(dataset, beginDate, duration):
 								   'date': beginDate.strftime("%d.%m.%y"), 'stressBalanceValue': '',
 								   'glucoseAnnotation': '', 'bgValue': '', 'exerciseTimeValue': (float(d['exerciseTimeValue']) - ((beginDate - dateParser(d['date'], d['time'])).total_seconds() / 60)), 'time': '00:00',
 								   'sleepAnnotation': '', 'mlCgmValue': '', 'pumpCgmPredictionValue': '',
-								   'otherAnnotation': '', 'mlAnnotation': '', "weight": '', "bloodPressure": '', "tag": ''}
+								   'otherAnnotation': '', 'mlAnnotation': '', "weight": '', "bloodPressure": '', "tag": '', 'cgmPredictionTemporalSpacing': '', 'cgmPredictionList': ''}
 				cacheValuesExist = True
 		elif tempDate >= beginDate and tempDate < endDate:
 			if cacheValuesExist:
@@ -364,11 +369,11 @@ def findLimits(dataset, config):
 						limits['maxBasalBelowLegend'] = float(d['basalValue'])
 					limits['maxBasalValue'] = float(d['basalValue'])
 			if d['bolusValue']:
-				if float(d['bolusValue']) > limits['maxBarValue']:
-					limits['maxBarValue'] = float(d['bolusValue'])
+				if float(d['bolusValue'])/10 > limits['maxBarValue']:
+					limits['maxBarValue'] = float(d['bolusValue'])/10
 			if d['mealValue']:
-				if float(d['mealValue']) > limits['maxBarValue']:
-					limits['maxBarValue'] = float(d['mealValue'])
+				if float(d['mealValue'])/10 > limits['maxBarValue']:
+					limits['maxBarValue'] = float(d['mealValue'])/10
 			if d['heartRateValue']:
 				if float(d['heartRateValue']) < limits['minHrValue']:
 					limits['minHrValue'] = float(d['heartRateValue'])
@@ -475,6 +480,8 @@ ketonesAvailable = Value('b', False)
 
 seperateLegend = Value('b', False)
 
+plotPrediction = Value('b', False)
+
 def prepareDataset(dataset, config, beginDate, endDate):
 	global bgAvailable
 	global cgmAvailable
@@ -546,7 +553,8 @@ def prepareDataset(dataset, config, beginDate, endDate):
 					'carbTotal':0, 'autonomousSuspensionTotal':datetime.timedelta(minutes=0), 'noteAnnotation':"",
 					'cgmValuesInRange':0, 'cgmGenerics':{}, 'bolusCalculationGenerics':{}, 'bolusGenerics':{},
 					'basalGenerics':{}, 'symbolGenerics':{}, 'mlAnnotationsX':[[]], 'mlAnnotationsY':[[]],
-					'mlAnnotationsClass':[], 'weight':"", 'bloodPressure':"", 'tag':""}
+					'mlAnnotationsClass':[], 'weight':"", 'bloodPressure':"", 'tag':"",
+					'cgmPredictionX': [[]], 'cgmPredictionY': [[]]}
 
 	# Temp
 	bolusValuesX = []
@@ -896,6 +904,18 @@ def prepareDataset(dataset, config, beginDate, endDate):
 				plottingData['tag'] = d['tag']
 			else:
 				plottingData['tag'] = plottingData['tag'] + " \\newline " + d['tag']
+		
+		if d['cgmPredictionTemporalSpacing'] and d['cgmPredictionList']:
+			tmpValues = re.split(":", d['cgmPredictionList'])
+			tmpX = []
+			tmpY = []
+			for i in range(0,len(tmpValues)):
+				tmpStamp = tempDate + datetime.timedelta(seconds=float(d['cgmPredictionTemporalSpacing']) * i)
+				tmpX.append(tmpStamp)
+				tmpY.append(float(tmpValues[i]))
+
+			plottingData['cgmPredictionX'].append(tmpX)
+			plottingData['cgmPredictionY'].append(tmpY)
 
 		for g in generics:
 			tempString = '{"data": ' + config["generics"].get(g) + '}'
@@ -1013,9 +1033,8 @@ plotCounter = {"SLICE_DAILYSTATISTICS":0, "SLICE_DAILY":0, "SLICE_TINY":0, "SLIC
 
 def plot(dataset, config, outPath, beginDate, duration, plotType, extLegend, limits, dailyNotes, dayCounter, plotCounter):
 	plt.close()
-	#global dayCounter
-	#global plotCounter
 	global seperateLegend
+	global plotPrediction
 
 	datasubset = dataSubset(dataset, beginDate, duration)
 	endDate = beginDate + datetime.timedelta(minutes=duration) - datetime.timedelta(seconds=1.0)
@@ -1354,6 +1373,16 @@ def plot(dataset, config, outPath, beginDate, duration, plotType, extLegend, lim
 										alpha=0.65,
 										solid_capstyle='round',
 										color=annoColor)  # Plot cgmValues
+
+		if plotPrediction.value:
+			for i in range(0, len(plottingData['cgmPredictionX'])):
+				if len(plottingData['cgmPredictionX'][i]) > 0:
+					axCgmBg.axvline(plottingData['cgmPredictionX'][i][0], color=config["colors"].get("cgmPredictionVLineColor"))
+				cgmPredictionPlot, = axCgmBg.plot(plottingData['cgmPredictionX'][i], plottingData['cgmPredictionY'][i],
+							marker=config["plotMarkers"].get("cgmMarker"),
+							markersize=config["plotMarkers"].get("cgmMainMarkerSize"),
+							linewidth=config["linewidths"].getfloat("cgmLineWidth"),
+							color=config["colors"].get("cgmPredictionColor"))  # Plot cgmValues
 
 		for i in range(0,len(plottingData['cgmValuesX'])):
 			cgmPlot, = axCgmBg.plot(plottingData['cgmValuesX'][i], plottingData['cgmValuesY'][i], marker=config["plotMarkers"].get("cgmMarker"), markersize=config["plotMarkers"].get("cgmMainMarkerSize"),
@@ -2644,6 +2673,7 @@ def main():
 	global seperateLegend
 	global dayCounter
 	global plotCounter
+	global plotPrediction
 
 	os.environ["MATPLOTLIBDATA"] = ""
 
@@ -2661,7 +2691,7 @@ def main():
 	parser.add_option("-c", "--config", dest="config", metavar="FILE", default="config.ini",
 					  help="FILE specifies configuration file for the plot [Default config.ini].")
 	parser.add_option("-d", "--daily", dest="daily", action="store_true",
-					  help="Activates daily plot.")
+					  help="Activates daily plot.")	
 	parser.add_option("-s", "--dailystatistics", dest="dailystatistics", action="store_true",
 					  help="Activates daily plot with daily statistics.")
 	parser.add_option("-t", "--slice-tiny", dest="slicetiny", metavar="FILE",
@@ -2672,6 +2702,8 @@ def main():
 					  help="FILE specifies slice annotations. Activates slice plot (1 per Line).")
 	parser.add_option("-i", "--instances", type="int", dest="instances",
 					  help="Specifies the amount of parallel instances that the script spwans. By default this value is set to the available threads on the machine.")
+	parser.add_option("-p", "--prediction", dest="prediction", action="store_true",
+					  help="Activates prediction plots.")
 	parser.add_option("-l", "--legend", dest="legend", action="store_true",
 					  help="Activates legend plot.")
 	parser.add_option("-T", "--tex", dest="tex", action="store_true",
@@ -2682,6 +2714,9 @@ def main():
 					  help="PATH specifies the output path for generated files. [Default: ./]")
 
 	(options, args) = parser.parse_args()
+
+	if options.prediction:
+		plotPrediction.value = options.prediction
 
 	if options.instances:
 		instances = options.instances
