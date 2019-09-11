@@ -46,7 +46,7 @@ except ImportError as err:
 # const
 # TODO check required fields only
 
-csvDataFormat = ['date','time','bgValue','cgmValue','cgmRawValue','cgmAlertValue','glucoseAnnotation','basalValue','basalAnnotation','bolusValue','bolusAnnotation','bolusCalculationValue','mealValue','pumpAnnotation','exerciseTimeValue','exerciseAnnotation','heartRateValue','heartRateVariabilityValue','stressBalanceValue','stressValue','sleepValue','sleepAnnotation','locationAnnotation', 'mlCgmValue', 'pumpCgmPredictionValue', 'otherAnnotation', 'weight', 'bloodPressure', 'tag', 'cgmPredictionTemporalSpacing', 'cgmPredictionList']
+csvDataFormat = ['date','time','bgValue','cgmValue','cgmRawValue','cgmAlertValue','glucoseAnnotation','basalValue','basalAnnotation','bolusValue','bolusAnnotation','bolusCalculationValue','mealValue','pumpAnnotation','exerciseTimeValue','exerciseAnnotation','heartRateValue','heartRateVariabilityValue','stressBalanceValue','stressValue','sleepValue','sleepAnnotation','locationAnnotation', 'mlCgmValue', 'pumpCgmPredictionValue', 'otherAnnotation', 'weight', 'bloodPressure', 'tag', 'cgmPredictionTemporalSpacing', 'cgmPredictionList', 'iobBasal', 'iobBolus', 'iobAll', 'cob']
 slicesDataFormat = ['date','time','duration','type','filter']
 
 genericsColors = {'cgmGenerics':{}, 'bolusCalculationGenerics':{}, 'bolusGenerics':{}, 'basalGenerics': {}, 'symbolGenerics': {}}
@@ -111,7 +111,7 @@ def parseDataset(csvfile):
 		date = '{:%d.%m.%y}'.format(timestamp)
 		time = '{:%H:%M}'.format(timestamp)
 		
-		tmpEntry = {"date": date, "time": time, "bgValue": '', "cgmValue": '', "cgmRawValue": '', "cgmAlertValue": '', "pumpCgmPredictionValue": '', "glucoseAnnotation": '', "basalValue": '', "basalAnnotation": '', "bolusValue": '', "bolusAnnotation": 'BOLUS_NORMAL', "bolusCalculationValue": '', "mealValue": '', "pumpAnnotation": '', "exerciseTimeValue": '', "exerciseAnnotation": '', "heartRateValue": '', "heartRateVariabilityValue": '', "stressBalanceValue": '', "stressValue": '', "sleepValue": '', "sleepAnnotation": '', "locationAnnotation": '', "mlCgmValue": '', "mlAnnotation": '', "otherAnnotation": '', "weight": '', "bloodPressure": '', "tag": '', 'cgmPredictionTemporalSpacing': '', 'cgmPredictionList': ''}
+		tmpEntry = {"date": date, "time": time, "bgValue": '', "cgmValue": '', "cgmRawValue": '', "cgmAlertValue": '', "pumpCgmPredictionValue": '', "glucoseAnnotation": '', "basalValue": '', "basalAnnotation": '', "bolusValue": '', "bolusAnnotation": 'BOLUS_NORMAL', "bolusCalculationValue": '', "mealValue": '', "pumpAnnotation": '', "exerciseTimeValue": '', "exerciseAnnotation": '', "heartRateValue": '', "heartRateVariabilityValue": '', "stressBalanceValue": '', "stressValue": '', "sleepValue": '', "sleepAnnotation": '', "locationAnnotation": '', "mlCgmValue": '', "mlAnnotation": '', "otherAnnotation": '', "weight": '', "bloodPressure": '', "tag": '', 'cgmPredictionTemporalSpacing': '', 'cgmPredictionList': '', 'iobBasal': '', 'iobBolus': '', 'iobAll': '', 'cob': ''}
 		
 		# check type
 		if(row[1] == "BOLUS_NORMAL"):
@@ -255,6 +255,17 @@ def parseDataset(csvfile):
 		if(row[1] == "CGM_PREDICTION"):
 			tmpEntry['cgmPredictionTemporalSpacing'] = row[2]
 			tmpEntry['cgmPredictionList'] = row[3]
+		if(row[1] == "IOB_BASAL"):
+			tmpEntry['iobBasal'] = row[2]
+		if(row[1] == "IOB_BOLUS"):
+			tmpEntry['iobBolus'] = row[2]
+		if(row[1] == "IOB_ALL"):
+			tmpEntry['iobAll'] = row[2]
+		if(row[1] == "COB"):
+			tmpEntry['cob'] = row[2]
+		if(row[1] == "ONE_HOT"):
+			pass # TODO
+
 		# add temporary entry to dataset
 		dataset.append(tmpEntry)
 	
@@ -284,7 +295,8 @@ def dataSubset(dataset, beginDate, duration):
 							   'heartRateVariabilityValue': '', 'date': beginDate.strftime("%d.%m.%y"),
 							   'stressBalanceValue': '', 'glucoseAnnotation': '', 'bgValue': '',
 							   'exerciseTimeValue': '', 'time': '00:00', 'sleepAnnotation': d['locationAnnotation'], 'mlCgmValue': '', 'pumpCgmPredictionValue': '',
-							   'otherAnnotation': '', 'mlAnnotation': '', "weight": '', "bloodPressure": '', "tag": '', 'cgmPredictionTemporalSpacing': '', 'cgmPredictionList': ''}
+							   'otherAnnotation': '', 'mlAnnotation': '', "weight": '', "bloodPressure": '', "tag": '', 'cgmPredictionTemporalSpacing': '', 'cgmPredictionList': '',
+							   'iobBasal': '', 'iobBolus': '', 'iobAll': '', 'cob': ''}
 				cacheValuesExist = True
 			if d['stressValue']:
 				stressCache = {'pumpAnnotation': '', 'cgmAlertValue': '', 'mealValue': '', 'basalValue': '',
@@ -294,7 +306,8 @@ def dataSubset(dataset, beginDate, duration):
 							   'heartRateVariabilityValue': '', 'date': beginDate.strftime("%d.%m.%y"),
 							   'stressBalanceValue': '', 'glucoseAnnotation': '', 'bgValue': '',
 							   'exerciseTimeValue': '', 'time': '00:00', 'sleepAnnotation': '', 'mlCgmValue': '', 'pumpCgmPredictionValue': '',
-							   'otherAnnotation': '', 'mlAnnotation': '', "weight": '', "bloodPressure": '', "tag": '', 'cgmPredictionTemporalSpacing': '', 'cgmPredictionList': ''}
+							   'otherAnnotation': '', 'mlAnnotation': '', "weight": '', "bloodPressure": '', "tag": '', 'cgmPredictionTemporalSpacing': '', 'cgmPredictionList': '',
+							   'iobBasal': '', 'iobBolus': '', 'iobAll': '', 'cob': ''}
 				cacheValuesExist = True
 			if d['sleepAnnotation']:
 				if dateParser(d['date'], d['time']) + datetime.timedelta(minutes=float(d['sleepValue'])) > beginDate:
@@ -305,7 +318,8 @@ def dataSubset(dataset, beginDate, duration):
 								   'heartRateVariabilityValue': '', 'date': beginDate.strftime("%d.%m.%y"),
 								   'stressBalanceValue': '', 'glucoseAnnotation': '', 'bgValue': '',
 								   'exerciseTimeValue': '', 'time': '00:00', 'sleepAnnotation': d['sleepAnnotation'], 'mlCgmValue': '', 'pumpCgmPredictionValue': '',
-								   'otherAnnotation': '', 'mlAnnotation': '', "weight": '', "bloodPressure": '', "tag": '', 'cgmPredictionTemporalSpacing': '', 'cgmPredictionList': ''}
+								   'otherAnnotation': '', 'mlAnnotation': '', "weight": '', "bloodPressure": '', "tag": '', 'cgmPredictionTemporalSpacing': '', 'cgmPredictionList': '',
+							   'iobBasal': '', 'iobBolus': '', 'iobAll': '', 'cob': ''}
 				cacheValuesExist = True
 			if d['basalValue']:
 				basalCache = {'pumpAnnotation': '', 'cgmAlertValue': '', 'mealValue': '', 'basalValue': d['basalValue'],
@@ -315,7 +329,8 @@ def dataSubset(dataset, beginDate, duration):
 							   'heartRateVariabilityValue': '', 'date': beginDate.strftime("%d.%m.%y"),
 							   'stressBalanceValue': '', 'glucoseAnnotation': '', 'bgValue': '',
 							   'exerciseTimeValue': '', 'time': '00:00', 'sleepAnnotation': '', 'mlCgmValue': '', 'pumpCgmPredictionValue': '',
-							   'otherAnnotation': '', 'mlAnnotation': '', "weight": '', "bloodPressure": '', "tag": '', 'cgmPredictionTemporalSpacing': '', 'cgmPredictionList': ''}
+							   'otherAnnotation': '', 'mlAnnotation': '', "weight": '', "bloodPressure": '', "tag": '', 'cgmPredictionTemporalSpacing': '', 'cgmPredictionList': '',
+							   'iobBasal': '', 'iobBolus': '', 'iobAll': '', 'cob': ''}
 				cacheValuesExist = True
 			if d['exerciseAnnotation']:
 				if d['exerciseTimeValue'] and dateParser(d['date'], d['time']) + datetime.timedelta(minutes=float(d['exerciseTimeValue'])) > beginDate:
@@ -327,7 +342,8 @@ def dataSubset(dataset, beginDate, duration):
 								   'date': beginDate.strftime("%d.%m.%y"), 'stressBalanceValue': '',
 								   'glucoseAnnotation': '', 'bgValue': '', 'exerciseTimeValue': (float(d['exerciseTimeValue']) - ((beginDate - dateParser(d['date'], d['time'])).total_seconds() / 60)), 'time': '00:00',
 								   'sleepAnnotation': '', 'mlCgmValue': '', 'pumpCgmPredictionValue': '',
-								   'otherAnnotation': '', 'mlAnnotation': '', "weight": '', "bloodPressure": '', "tag": '', 'cgmPredictionTemporalSpacing': '', 'cgmPredictionList': ''}
+								   'otherAnnotation': '', 'mlAnnotation': '', "weight": '', "bloodPressure": '', "tag": '', 'cgmPredictionTemporalSpacing': '', 'cgmPredictionList': '',
+							   'iobBasal': '', 'iobBolus': '', 'iobAll': '', 'cob': ''}
 				cacheValuesExist = True
 		elif tempDate >= beginDate and tempDate < endDate:
 			if cacheValuesExist:
@@ -554,7 +570,11 @@ def prepareDataset(dataset, config, beginDate, endDate):
 					'cgmValuesInRange':0, 'cgmGenerics':{}, 'bolusCalculationGenerics':{}, 'bolusGenerics':{},
 					'basalGenerics':{}, 'symbolGenerics':{}, 'mlAnnotationsX':[[]], 'mlAnnotationsY':[[]],
 					'mlAnnotationsClass':[], 'weight':"", 'bloodPressure':"", 'tag':"",
-					'cgmPredictionX': [[]], 'cgmPredictionY': [[]]}
+					'cgmPredictionX': [[]], 'cgmPredictionY': [[]],
+					'iobBasalX': [], 'iobBasalY':[],
+					'iobBolusX': [], 'iobBolusY':[],
+					'iobAllX': [], 'iobAllY':[],
+					'cobX': [], 'cobY':[]}
 
 	# Temp
 	bolusValuesX = []
@@ -916,6 +936,19 @@ def prepareDataset(dataset, config, beginDate, endDate):
 
 			plottingData['cgmPredictionX'].append(tmpX)
 			plottingData['cgmPredictionY'].append(tmpY)
+		
+		if d['iobBasal']:
+			plottingData['iobBasalX'].append(tempDate)
+			plottingData['iobBasalY'].append(float(d['iobBasal']))
+		if d['iobBolus']:
+			plottingData['iobBolusX'].append(tempDate)
+			plottingData['iobBolusY'].append(float(d['iobBolus']))
+		if d['iobBasal']:
+			plottingData['iobAllX'].append(tempDate)
+			plottingData['iobAllY'].append(float(d['iobAll']))
+		if d['cob']:
+			plottingData['cobX'].append(tempDate)
+			plottingData['cobY'].append(float(d['cob']))
 
 		for g in generics:
 			tempString = '{"data": ' + config["generics"].get(g) + '}'
