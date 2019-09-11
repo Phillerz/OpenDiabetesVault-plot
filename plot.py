@@ -1439,7 +1439,7 @@ def plot(dataset, config, outPath, beginDate, duration, plotType, extLegend, lim
 				if float(plottingData['cgmValuesY'][i][j]) > cgmRedHighLimit:
 					cgmRedHighValuesX[cgmRedHighIndex].append(plottingData['cgmValuesX'][i][j])
 					cgmRedHighValuesY[cgmRedHighIndex].append(plottingData['cgmValuesY'][i][j])
-				if float(plottingData['cgmValuesY'][i][j]) < cgmRedHighLimit and float(prevPoint[1]) >= cgmRedHighLimit:
+				if float(plottingData['cgmValuesY'][i][j]) <= cgmRedHighLimit and float(prevPoint[1]) >= cgmRedHighLimit:
 					cgmRedHighValuesX.append([])
 					cgmRedHighValuesY.append([])
 					cgmRedHighIndex += 1
@@ -1459,7 +1459,7 @@ def plot(dataset, config, outPath, beginDate, duration, plotType, extLegend, lim
 				if float(plottingData['cgmValuesY'][i][j]) <= cgmRedLowLimit:
 					cgmRedLowValuesX[cgmRedLowIndex].append(plottingData['cgmValuesX'][i][j])
 					cgmRedLowValuesY[cgmRedLowIndex].append(plottingData['cgmValuesY'][i][j])
-				if float(plottingData['cgmValuesY'][i][j]) >= cgmRedLowLimit and float(prevPoint[1]) < cgmRedLowLimit:
+				if float(plottingData['cgmValuesY'][i][j]) >= cgmRedLowLimit and float(prevPoint[1]) <= cgmRedLowLimit:
 					cgmRedLowValuesX.append([])
 					cgmRedLowValuesY.append([])
 					cgmRedLowIndex += 1
