@@ -98,6 +98,8 @@ def parseDataset(csvfile):
 		sys.exit(0)
 
 	cgmTemp = []
+	
+	firstPredict = ""
 
 	for row in reader:
 		# row[0] = timestamp
@@ -111,7 +113,7 @@ def parseDataset(csvfile):
 		date = '{:%d.%m.%y}'.format(timestamp)
 		time = '{:%H:%M}'.format(timestamp)
 		
-		tmpEntry = {"date": date, "time": time, "bgValue": '', "cgmValue": '', "cgmRawValue": '', "cgmAlertValue": '', "pumpCgmPredictionValue": '', "glucoseAnnotation": '', "basalValue": '', "basalAnnotation": '', "bolusValue": '', "bolusAnnotation": 'BOLUS_NORMAL', "bolusCalculationValue": '', "mealValue": '', "pumpAnnotation": '', "exerciseTimeValue": '', "exerciseAnnotation": '', "heartRateValue": '', "heartRateVariabilityValue": '', "stressBalanceValue": '', "stressValue": '', "sleepValue": '', "sleepAnnotation": '', "locationAnnotation": '', "mlCgmValue": '', "mlAnnotation": '', "otherAnnotation": '', "weight": '', "bloodPressure": '', "tag": '', 'cgmPredictionTemporalSpacing': '', 'cgmPredictionList': '', 'iobBasal': '', 'iobBolus': '', 'iobAll': '', 'cob': ''}
+		tmpEntry = {"date": date, "time": time, "bgValue": '', "cgmValue": '', "cgmRawValue": '', "cgmAlertValue": '', "pumpCgmPredictionValue": '', "glucoseAnnotation": '', "basalValue": '', "basalAnnotation": '', "bolusValue": '', "bolusAnnotation": 'BOLUS_NORMAL', "bolusCalculationValue": '', "mealValue": '', "pumpAnnotation": '', "exerciseTimeValue": '', "exerciseAnnotation": '', "heartRateValue": '', "heartRateVariabilityValue": '', "stressBalanceValue": '', "stressValue": '', "sleepValue": '', "sleepAnnotation": '', "locationAnnotation": '', "mlCgmValue": '', "mlAnnotation": '', "otherAnnotation": '', "weight": '', "bloodPressure": '', "tag": '', 'cgmPredictionTemporalSpacing': '', 'cgmPredictionList': '', 'cgmPredictionType': '', 'iobBasal': '', 'iobBolus': '', 'iobAll': '', 'cob': ''}
 		
 		# check type
 		if(row[1] == "BOLUS_NORMAL"):
@@ -252,19 +254,33 @@ def parseDataset(csvfile):
 		
 		
 		# refined types
-		if(row[1] == "CGM_PREDICTION"):
-			tmpEntry['cgmPredictionTemporalSpacing'] = row[2]
-			tmpEntry['cgmPredictionList'] = row[3]
-		if(row[1] == "IOB_BASAL"):
-			tmpEntry['iobBasal'] = row[2]
-		if(row[1] == "IOB_BOLUS"):
-			tmpEntry['iobBolus'] = row[2]
-		if(row[1] == "IOB_ALL"):
-			tmpEntry['iobAll'] = row[2]
-		if(row[1] == "COB"):
-			tmpEntry['cob'] = row[2]
-		if(row[1] == "ONE_HOT"):
-			pass # TODO
+		if(row[1] == "REFINED_VAULT_ENTRY"):
+			if("CGM_PREDICTION" in row[3]):
+				predictionType = row[3].split('(',1)[1].split(')')[0]
+
+				tmpEntry['cgmPredictionTemporalSpacing'] = row[2]
+				tmpEntry['cgmPredictionList'] = row[4]
+				tmpEntry['cgmPredictionType'] = predictionType
+
+#				if(not firstPredict):
+#					tmpEntry['cgmPredictionTemporalSpacing'] = row[2]
+#					tmpEntry['cgmPredictionList'] = row[4]
+#					tmpEntry['cgmPredictionType'] = predictionType
+#					firstPredict = timestamp + datetime.timedelta(minutes=500)
+#				elif(timestamp <= firstPredict):
+#					tmpEntry['cgmPredictionTemporalSpacing'] = row[2]
+#					tmpEntry['cgmPredictionList'] = row[4]
+#					tmpEntry['cgmPredictionType'] = predictionType
+			if(row[1] == "IOB_BASAL"):
+				tmpEntry['iobBasal'] = row[2]
+			if(row[1] == "IOB_BOLUS"):
+				tmpEntry['iobBolus'] = row[2]
+			if(row[1] == "IOB_ALL"):
+				tmpEntry['iobAll'] = row[2]
+			if(row[1] == "COB"):
+				tmpEntry['cob'] = row[2]
+			if(row[1] == "ONE_HOT"):
+				pass # TODO
 
 		# add temporary entry to dataset
 		dataset.append(tmpEntry)
@@ -295,7 +311,7 @@ def dataSubset(dataset, beginDate, duration):
 							   'heartRateVariabilityValue': '', 'date': beginDate.strftime("%d.%m.%y"),
 							   'stressBalanceValue': '', 'glucoseAnnotation': '', 'bgValue': '',
 							   'exerciseTimeValue': '', 'time': '00:00', 'sleepAnnotation': d['locationAnnotation'], 'mlCgmValue': '', 'pumpCgmPredictionValue': '',
-							   'otherAnnotation': '', 'mlAnnotation': '', "weight": '', "bloodPressure": '', "tag": '', 'cgmPredictionTemporalSpacing': '', 'cgmPredictionList': '',
+							   'otherAnnotation': '', 'mlAnnotation': '', "weight": '', "bloodPressure": '', "tag": '', 'cgmPredictionTemporalSpacing': '', 'cgmPredictionList': '', 'cgmPredictionType': '',
 							   'iobBasal': '', 'iobBolus': '', 'iobAll': '', 'cob': ''}
 				cacheValuesExist = True
 			if d['stressValue']:
@@ -306,7 +322,7 @@ def dataSubset(dataset, beginDate, duration):
 							   'heartRateVariabilityValue': '', 'date': beginDate.strftime("%d.%m.%y"),
 							   'stressBalanceValue': '', 'glucoseAnnotation': '', 'bgValue': '',
 							   'exerciseTimeValue': '', 'time': '00:00', 'sleepAnnotation': '', 'mlCgmValue': '', 'pumpCgmPredictionValue': '',
-							   'otherAnnotation': '', 'mlAnnotation': '', "weight": '', "bloodPressure": '', "tag": '', 'cgmPredictionTemporalSpacing': '', 'cgmPredictionList': '',
+							   'otherAnnotation': '', 'mlAnnotation': '', "weight": '', "bloodPressure": '', "tag": '', 'cgmPredictionTemporalSpacing': '', 'cgmPredictionList': '', 'cgmPredictionType': '',
 							   'iobBasal': '', 'iobBolus': '', 'iobAll': '', 'cob': ''}
 				cacheValuesExist = True
 			if d['sleepAnnotation']:
@@ -318,7 +334,7 @@ def dataSubset(dataset, beginDate, duration):
 								   'heartRateVariabilityValue': '', 'date': beginDate.strftime("%d.%m.%y"),
 								   'stressBalanceValue': '', 'glucoseAnnotation': '', 'bgValue': '',
 								   'exerciseTimeValue': '', 'time': '00:00', 'sleepAnnotation': d['sleepAnnotation'], 'mlCgmValue': '', 'pumpCgmPredictionValue': '',
-								   'otherAnnotation': '', 'mlAnnotation': '', "weight": '', "bloodPressure": '', "tag": '', 'cgmPredictionTemporalSpacing': '', 'cgmPredictionList': '',
+								   'otherAnnotation': '', 'mlAnnotation': '', "weight": '', "bloodPressure": '', "tag": '', 'cgmPredictionTemporalSpacing': '', 'cgmPredictionList': '', 'cgmPredictionType': '',
 							   'iobBasal': '', 'iobBolus': '', 'iobAll': '', 'cob': ''}
 				cacheValuesExist = True
 			if d['basalValue']:
@@ -329,7 +345,7 @@ def dataSubset(dataset, beginDate, duration):
 							   'heartRateVariabilityValue': '', 'date': beginDate.strftime("%d.%m.%y"),
 							   'stressBalanceValue': '', 'glucoseAnnotation': '', 'bgValue': '',
 							   'exerciseTimeValue': '', 'time': '00:00', 'sleepAnnotation': '', 'mlCgmValue': '', 'pumpCgmPredictionValue': '',
-							   'otherAnnotation': '', 'mlAnnotation': '', "weight": '', "bloodPressure": '', "tag": '', 'cgmPredictionTemporalSpacing': '', 'cgmPredictionList': '',
+							   'otherAnnotation': '', 'mlAnnotation': '', "weight": '', "bloodPressure": '', "tag": '', 'cgmPredictionTemporalSpacing': '', 'cgmPredictionList': '', 'cgmPredictionType': '',
 							   'iobBasal': '', 'iobBolus': '', 'iobAll': '', 'cob': ''}
 				cacheValuesExist = True
 			if d['exerciseAnnotation']:
@@ -342,7 +358,7 @@ def dataSubset(dataset, beginDate, duration):
 								   'date': beginDate.strftime("%d.%m.%y"), 'stressBalanceValue': '',
 								   'glucoseAnnotation': '', 'bgValue': '', 'exerciseTimeValue': (float(d['exerciseTimeValue']) - ((beginDate - dateParser(d['date'], d['time'])).total_seconds() / 60)), 'time': '00:00',
 								   'sleepAnnotation': '', 'mlCgmValue': '', 'pumpCgmPredictionValue': '',
-								   'otherAnnotation': '', 'mlAnnotation': '', "weight": '', "bloodPressure": '', "tag": '', 'cgmPredictionTemporalSpacing': '', 'cgmPredictionList': '',
+								   'otherAnnotation': '', 'mlAnnotation': '', "weight": '', "bloodPressure": '', "tag": '', 'cgmPredictionTemporalSpacing': '', 'cgmPredictionList': '', 'cgmPredictionType': '',
 							   'iobBasal': '', 'iobBolus': '', 'iobAll': '', 'cob': ''}
 				cacheValuesExist = True
 		elif tempDate >= beginDate and tempDate < endDate:
@@ -570,7 +586,7 @@ def prepareDataset(dataset, config, beginDate, endDate):
 					'cgmValuesInRange':0, 'cgmGenerics':{}, 'bolusCalculationGenerics':{}, 'bolusGenerics':{},
 					'basalGenerics':{}, 'symbolGenerics':{}, 'mlAnnotationsX':[[]], 'mlAnnotationsY':[[]],
 					'mlAnnotationsClass':[], 'weight':"", 'bloodPressure':"", 'tag':"",
-					'cgmPredictionX': [[]], 'cgmPredictionY': [[]],
+					'cgmPredictionX': [[]], 'cgmPredictionY': [[]], 'cgmPredictionType': [[]],
 					'iobBasalX': [], 'iobBasalY':[],
 					'iobBolusX': [], 'iobBolusY':[],
 					'iobAllX': [], 'iobAllY':[],
@@ -925,17 +941,22 @@ def prepareDataset(dataset, config, beginDate, endDate):
 			else:
 				plottingData['tag'] = plottingData['tag'] + " \\newline " + d['tag']
 		
-		if d['cgmPredictionTemporalSpacing'] and d['cgmPredictionList']:
+		if d['cgmPredictionTemporalSpacing'] and d['cgmPredictionList'] and d['cgmPredictionType']:
 			tmpValues = re.split(":", d['cgmPredictionList'])
 			tmpX = []
 			tmpY = []
+			tmpType = []
+
 			for i in range(0,len(tmpValues)):
-				tmpStamp = tempDate + datetime.timedelta(seconds=float(d['cgmPredictionTemporalSpacing']) * i)
+				tmpStamp = tempDate + datetime.timedelta(minutes=float(d['cgmPredictionTemporalSpacing']) * i)
 				tmpX.append(tmpStamp)
 				tmpY.append(float(tmpValues[i]))
+				tmpType.append(d['cgmPredictionType'])
+
 
 			plottingData['cgmPredictionX'].append(tmpX)
 			plottingData['cgmPredictionY'].append(tmpY)
+			plottingData['cgmPredictionType'].append(tmpType)
 		
 		if d['iobBasal']:
 			plottingData['iobBasalX'].append(tempDate)
@@ -1072,7 +1093,7 @@ def plot(dataset, config, outPath, beginDate, duration, plotType, extLegend, lim
 	datasubset = dataSubset(dataset, beginDate, duration)
 	endDate = beginDate + datetime.timedelta(minutes=duration) - datetime.timedelta(seconds=1.0)
 	plottingData = prepareDataset(datasubset, config, beginDate, endDate)
-
+	
 	if config["plotBooleans"].getboolean("plotElevation"):
 		### glucose elevation ###
 		elevationSliceCount = 12
@@ -1406,16 +1427,27 @@ def plot(dataset, config, outPath, beginDate, duration, plotType, extLegend, lim
 										alpha=0.65,
 										solid_capstyle='round',
 										color=annoColor)  # Plot cgmValues
+		
+		predictionPlotsDict = {}
 
 		if plotPrediction.value:
 			for i in range(0, len(plottingData['cgmPredictionX'])):
 				if len(plottingData['cgmPredictionX'][i]) > 0:
-					axCgmBg.axvline(plottingData['cgmPredictionX'][i][0], color=config["colors"].get("cgmPredictionVLineColor"))
-				cgmPredictionPlot, = axCgmBg.plot(plottingData['cgmPredictionX'][i], plottingData['cgmPredictionY'][i],
-							marker=config["plotMarkers"].get("cgmMarker"),
-							markersize=config["plotMarkers"].get("cgmMainMarkerSize"),
-							linewidth=config["linewidths"].getfloat("cgmLineWidth"),
-							color=config["colors"].get("cgmPredictionColor"))  # Plot cgmValues
+					t = plottingData['cgmPredictionX'][i]
+					strVLineColor = "cgmPredictionVLineColor" + plottingData['cgmPredictionType'][i][0]
+					strPredictionColor = "cgmPredictionColor" + plottingData['cgmPredictionType'][i][0]
+					tmpStr = t[0].strftime('%y%m%d_%H-%M-%S')
+					if tmpStr not in predictionPlotsDict:
+						predictionPlotsDict[tmpStr] = []
+					cgmPredictionLine = axCgmBg.axvline(plottingData['cgmPredictionX'][i][0], color=config["colors"].get(strVLineColor), linewidth=1)
+					cgmPredictionPlot, = axCgmBg.plot(plottingData['cgmPredictionX'][i], plottingData['cgmPredictionY'][i], 'ro',
+								marker=config["plotMarkers"].get("cgmMarker"),
+								markersize=config["plotMarkers"].getfloat("cgmMainMarkerSize")/2.0,
+								linewidth=config["linewidths"].getfloat("cgmLineWidth")/2.0,
+								#linewidth=0,
+								color=config["colors"].get(strPredictionColor))  # Plot cgmValues
+					predictionPlotsDict[tmpStr].append((cgmPredictionPlot,cgmPredictionLine))
+				#axCgmBg.fill_between(plottingData['cgmPredictionX'][i], plottingData['cgmPredictionY'][i], 0, color="#cc99ff", alpha=1)
 
 		for i in range(0,len(plottingData['cgmValuesX'])):
 			cgmPlot, = axCgmBg.plot(plottingData['cgmValuesX'][i], plottingData['cgmValuesY'][i], marker=config["plotMarkers"].get("cgmMarker"), markersize=config["plotMarkers"].get("cgmMainMarkerSize"),
@@ -2194,6 +2226,25 @@ def plot(dataset, config, outPath, beginDate, duration, plotType, extLegend, lim
 		tempDailyNotes = generateDailyNotes(config, outPath, plottingData, beginDate)
 	else:
 		fig.set_size_inches(8.27 * scale * sliceWidth, 11.69 / 3 * scale)
+
+
+	if plotPrediction.value:
+		for key1 in predictionPlotsDict:
+			for key2 in predictionPlotsDict:
+				for e in predictionPlotsDict[key2]:
+					if key2 == key1:
+						e[0].set_visible(True)
+						e[1].set_visible(True)
+					else:
+						e[0].set_visible(False)
+						e[1].set_visible(False)
+			
+			filenamePrediction = tempPrefix + "prediction_" + key1 + tempFileext
+			plt.savefig(os.path.join(outPath, filenamePrediction), transparent=False)
+		for key in predictionPlotsDict:
+			for e in predictionPlotsDict[key]:
+				e[0].set_visible(False)
+				e[1].set_visible(False)
 
 	plt.savefig(os.path.join(outPath, filename), transparent=False)
 	plt.clf()
