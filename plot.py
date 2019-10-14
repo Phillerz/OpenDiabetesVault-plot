@@ -261,16 +261,6 @@ def parseDataset(csvfile):
 				tmpEntry['cgmPredictionTemporalSpacing'] = row[2]
 				tmpEntry['cgmPredictionList'] = row[4]
 				tmpEntry['cgmPredictionType'] = predictionType
-
-#				if(not firstPredict):
-#					tmpEntry['cgmPredictionTemporalSpacing'] = row[2]
-#					tmpEntry['cgmPredictionList'] = row[4]
-#					tmpEntry['cgmPredictionType'] = predictionType
-#					firstPredict = timestamp + datetime.timedelta(minutes=500)
-#				elif(timestamp <= firstPredict):
-#					tmpEntry['cgmPredictionTemporalSpacing'] = row[2]
-#					tmpEntry['cgmPredictionList'] = row[4]
-#					tmpEntry['cgmPredictionType'] = predictionType
 			if(row[1] == "IOB_BASAL"):
 				tmpEntry['iobBasal'] = row[2]
 			if(row[1] == "IOB_BOLUS"):
@@ -1085,7 +1075,7 @@ plotCounter = {"SLICE_DAILYSTATISTICS":0, "SLICE_DAILY":0, "SLICE_TINY":0, "SLIC
 
 # plotType: might be SLICE_TINY, SLICE_NORMAL, SLICE_BIG or SLICE_DAILY
 
-def plot(dataset, config, outPath, beginDate, duration, plotType, extLegend, limits, dailyNotes, dayCounter, plotCounter):
+def plot(dataset, config, outPath, beginDate, duration, plotType, extLegend, limits, dailyNotes, dayCounter, plotCounter, predictionTimestamp):
 	plt.close()
 	global seperateLegend
 	global plotPrediction
@@ -1427,26 +1417,27 @@ def plot(dataset, config, outPath, beginDate, duration, plotType, extLegend, lim
 										alpha=0.65,
 										solid_capstyle='round',
 										color=annoColor)  # Plot cgmValues
-		
-		predictionPlotsDict = {}
 
-		if plotPrediction.value:
+		predictionHandles = []
+		predictionLabels = []
+		if predictionTimestamp:
 			for i in range(0, len(plottingData['cgmPredictionX'])):
 				if len(plottingData['cgmPredictionX'][i]) > 0:
 					t = plottingData['cgmPredictionX'][i]
 					strVLineColor = "cgmPredictionVLineColor" + plottingData['cgmPredictionType'][i][0]
 					strPredictionColor = "cgmPredictionColor" + plottingData['cgmPredictionType'][i][0]
 					tmpStr = t[0].strftime('%y%m%d_%H-%M-%S')
-					if tmpStr not in predictionPlotsDict:
-						predictionPlotsDict[tmpStr] = []
-					cgmPredictionLine = axCgmBg.axvline(plottingData['cgmPredictionX'][i][0], color=config["colors"].get(strVLineColor), linewidth=1)
-					cgmPredictionPlot, = axCgmBg.plot(plottingData['cgmPredictionX'][i], plottingData['cgmPredictionY'][i], 'ro',
-								marker=config["plotMarkers"].get("cgmMarker"),
-								markersize=config["plotMarkers"].getfloat("cgmMainMarkerSize")/2.0,
-								linewidth=config["linewidths"].getfloat("cgmLineWidth")/2.0,
-								#linewidth=0,
-								color=config["colors"].get(strPredictionColor))  # Plot cgmValues
-					predictionPlotsDict[tmpStr].append((cgmPredictionPlot,cgmPredictionLine))
+					if tmpStr == predictionTimestamp.strftime('%y%m%d_%H-%M-%S'):
+
+						cgmPredictionLine = axCgmBg.axvline(plottingData['cgmPredictionX'][i][0], color=config["colors"].get(strVLineColor), linewidth=1)
+						cgmPredictionPlot, = axCgmBg.plot(plottingData['cgmPredictionX'][i], plottingData['cgmPredictionY'][i], 'ro',
+									marker=config["plotMarkers"].get("cgmMarker"),
+									markersize=config["plotMarkers"].getfloat("cgmMainMarkerSize")/2.0,
+									linewidth=config["linewidths"].getfloat("cgmLineWidth")/2.0,
+									#linewidth=0,
+									color=config["colors"].get(strPredictionColor))  # Plot cgmValues
+						predictionHandles.append(cgmPredictionPlot)
+						predictionLabels.append(plottingData['cgmPredictionType'][i][0])
 				#axCgmBg.fill_between(plottingData['cgmPredictionX'][i], plottingData['cgmPredictionY'][i], 0, color="#cc99ff", alpha=1)
 
 		for i in range(0,len(plottingData['cgmValuesX'])):
@@ -1806,6 +1797,12 @@ def plot(dataset, config, outPath, beginDate, duration, plotType, extLegend, lim
 									 edgecolor='#000000')
 			dailyLegend.get_frame().set_alpha(0.6)
 
+	if predictionTimestamp:
+			lel = axCgmBg.get_position()
+			predictionLegend = fig.legend(predictionHandles, predictionLabels, loc="upper left",
+									 bbox_to_anchor=[lel.x0 - 0.05, lel.y0 + 0.455], fontsize=10,
+									 edgecolor='#000000')
+			predictionLegend.get_frame().set_alpha(1.0)
 
 	### extended legend ###
 	if extLegend:
@@ -2228,25 +2225,11 @@ def plot(dataset, config, outPath, beginDate, duration, plotType, extLegend, lim
 		fig.set_size_inches(8.27 * scale * sliceWidth, 11.69 / 3 * scale)
 
 
-	if plotPrediction.value:
-		for key1 in predictionPlotsDict:
-			for key2 in predictionPlotsDict:
-				for e in predictionPlotsDict[key2]:
-					if key2 == key1:
-						e[0].set_visible(True)
-						e[1].set_visible(True)
-					else:
-						e[0].set_visible(False)
-						e[1].set_visible(False)
-			
-			filenamePrediction = tempPrefix + "prediction_" + key1 + tempFileext
-			plt.savefig(os.path.join(outPath, filenamePrediction), transparent=False)
-		for key in predictionPlotsDict:
-			for e in predictionPlotsDict[key]:
-				e[0].set_visible(False)
-				e[1].set_visible(False)
-
-	plt.savefig(os.path.join(outPath, filename), transparent=False)
+	if predictionTimestamp:
+		filenamePrediction = tempPrefix + "prediction_" + predictionTimestamp.strftime('%y%m%d_%H-%M-%S') + tempFileext
+		plt.savefig(os.path.join(outPath, filenamePrediction), transparent=False)
+	else:
+		plt.savefig(os.path.join(outPath, filename), transparent=False)
 	plt.clf()
 	########## Generate filename and save fig ##########
 
@@ -2705,13 +2688,24 @@ def generateSeperateLegend(config, outPath):
 numberOfPlots = 0.0
 sharedProgressCounter = Value('d', 0.0)
 
+def plotPrediction(timestamps, dataset, config, outPath, limits):
+	global numberOfPlots
+	global sharedProgressCounter
+	global dayCounter
+	global plotCounter
+
+	tempPlot = plot(dataset, config, outPath, timestamps[1], 1440.0, "SLICE_DAILY", False, limits, False, dayCounter, plotCounter, timestamps[0])
+	with sharedProgressCounter.get_lock():
+		sharedProgressCounter.value += 1
+	print(str('{0:.2f}'.format(float(sharedProgressCounter.value / numberOfPlots) * 100)) + " %")
+
 def plotDaily(d, dataset, config, outPath, limits, finishedPlotsDaily, finishedNotesDaily):
 	global numberOfPlots
 	global sharedProgressCounter
 	global dayCounter
 	global plotCounter
 
-	tempPlot = plot(dataset, config, outPath, dateParser(d['date'], '00:00'), 1440.0, "SLICE_DAILY", False, limits, False, dayCounter, plotCounter)
+	tempPlot = plot(dataset, config, outPath, dateParser(d['date'], '00:00'), 1440.0, "SLICE_DAILY", False, limits, False, dayCounter, plotCounter, "")
 	finishedPlotsDaily.append({'filename': tempPlot['filename'], 'timestamp': dateParser(d['date'], '00:00')})
 	finishedNotesDaily.append(tempPlot['dailyNotes'])
 	with sharedProgressCounter.get_lock():
@@ -2724,7 +2718,7 @@ def plotTinySlices(s, dataset, config, outPath, limits, finishedPlotsTinySlices)
 	global dayCounter
 	global plotCounter
 	
-	finishedPlotsTinySlices.append({'filename': plot(dataset, config, outPath, dateParser(s['date'], s['time']), float(s['duration']), "SLICE_TINY", False, limits, False, dayCounter, plotCounter)['filename'], 'timestamp': dateParser(s['date'], s['time'])})
+	finishedPlotsTinySlices.append({'filename': plot(dataset, config, outPath, dateParser(s['date'], s['time']), float(s['duration']), "SLICE_TINY", False, limits, False, dayCounter, plotCounter, "")['filename'], 'timestamp': dateParser(s['date'], s['time'])})
 	with sharedProgressCounter.get_lock():
 		sharedProgressCounter.value += 1
 	print(str('{0:.2f}'.format(float(sharedProgressCounter.value / numberOfPlots) * 100)) + " %")
@@ -2735,7 +2729,7 @@ def plotNormalSlices(s, dataset, config, outPath, limits, finishedPlotsNormalSli
 	global dayCounter
 	global plotCounter
 	
-	finishedPlotsNormalSlices.append({'filename': plot(dataset, config, outPath, dateParser(s['date'], s['time']), float(s['duration']), "SLICE_NORMAL", False, limits, False, dayCounter, plotCounter)['filename'], 'timestamp': dateParser(s['date'], s['time'])})
+	finishedPlotsNormalSlices.append({'filename': plot(dataset, config, outPath, dateParser(s['date'], s['time']), float(s['duration']), "SLICE_NORMAL", False, limits, False, dayCounter, plotCounter, "")['filename'], 'timestamp': dateParser(s['date'], s['time'])})
 	with sharedProgressCounter.get_lock():
 		sharedProgressCounter.value += 1
 	print(str('{0:.2f}'.format(float(sharedProgressCounter.value / numberOfPlots) * 100)) + " %")
@@ -2746,7 +2740,7 @@ def plotBigSlices(s, dataset, config, outPath, limits, finishedPlotsBigSlices):
 	global dayCounter
 	global plotCounter
 	
-	finishedPlotsBigSlices.append({'filename': plot(dataset, config, outPath, dateParser(s['date'], s['time']), float(s['duration']), "SLICE_BIG", False, limits, False, dayCounter, plotCounter)['filename'], 'timestamp': dateParser(s['date'], s['time'])})
+	finishedPlotsBigSlices.append({'filename': plot(dataset, config, outPath, dateParser(s['date'], s['time']), float(s['duration']), "SLICE_BIG", False, limits, False, dayCounter, plotCounter, "")['filename'], 'timestamp': dateParser(s['date'], s['time'])})
 	with sharedProgressCounter.get_lock():
 		sharedProgressCounter.value += 1
 	print(str('{0:.2f}'.format(float(sharedProgressCounter.value / numberOfPlots) * 100)) + " %")
@@ -2916,6 +2910,13 @@ def main():
 		days = str(int(divmod((lastDate - firstDate).total_seconds(), 86400)[0]) + 1)
 		headLineDailyStatistics = "Daily Log " + firstDate.strftime('%d.%m.%y') + "-" + lastDate.strftime(
 		'%d.%m.%y') + " (" + days + " days)"
+	if options.prediction:
+		tmpPrevTime = ""
+		for d in dataset:
+			if d['cgmPredictionList']:
+				if tmpPrevTime != d['time']:
+					numberOfPlots += 1
+					tmpPrevTime = d['time']		
 	if options.daily:
 		firstDate = dateParser(dataset[0]['date'], "00:00")
 		lastDate = dateParser(dataset[0]['date'], "00:00")
@@ -2991,6 +2992,29 @@ def main():
 				finishedNotesDaily.append(tempPlot['dailyNotes'])
 				sharedProgressCounter.value += 1
 				print(str('{0:.2f}'.format(float(sharedProgressCounter.value / numberOfPlots) * 100)) + " %")
+	
+	if options.prediction:
+		tmpPrevTime = ""
+		timestamps = []
+		tmpTimeDelta = 0
+		for d in dataset:
+			if d['cgmPredictionList']:
+				currentTimeDelta = float(d['cgmPredictionTemporalSpacing']) * len(re.split(":", d['cgmPredictionList']))
+				if tmpPrevTime != dateParser(d['date'], d['time']):
+					if tmpTimeDelta > 0:
+						tmpBeginTime = tmpPrevTime + datetime.timedelta(minutes=tmpTimeDelta) - datetime.timedelta(hours=24)
+						timestamps.append((tmpPrevTime,tmpBeginTime))
+					tmpPrevTime = dateParser(d['date'], d['time'])
+				else:
+					if(currentTimeDelta>tmpTimeDelta):
+						tmpTimeDelta = currentTimeDelta
+
+		if tmpTimeDelta > 0:
+			tmpBeginTime = tmpPrevTime + datetime.timedelta(minutes=tmpTimeDelta) - datetime.timedelta(hours=24)
+			timestamps.append((tmpPrevTime,tmpBeginTime))
+
+		p = Pool(instances)
+		p.map(partial(plotPrediction, dataset=dataset, config=config, outPath=outPath, limits=limits), timestamps)
 	if options.daily:
 		tempDate = ""
 		beginDates = []
