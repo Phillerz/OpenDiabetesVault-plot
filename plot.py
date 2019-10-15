@@ -1798,9 +1798,9 @@ def plot(dataset, config, outPath, beginDate, duration, plotType, extLegend, lim
 			dailyLegend.get_frame().set_alpha(0.6)
 
 	if predictionTimestamp:
-			lel = axCgmBg.get_position()
+			axCgmBgBox = axCgmBg.get_position()
 			predictionLegend = fig.legend(predictionHandles, predictionLabels, loc="upper left",
-									 bbox_to_anchor=[lel.x0 - 0.05, lel.y0 + 0.455], fontsize=10,
+									 bbox_to_anchor=[axCgmBgBox.x0 - 0.05, axCgmBgBox.y0 + 0.455], fontsize=10,
 									 edgecolor='#000000')
 			predictionLegend.get_frame().set_alpha(1.0)
 
@@ -3004,6 +3004,7 @@ def main():
 					if tmpTimeDelta > 0:
 						tmpBeginTime = tmpPrevTime + datetime.timedelta(minutes=tmpTimeDelta) - datetime.timedelta(hours=24)
 						timestamps.append((tmpPrevTime,tmpBeginTime))
+						tmpTimeDelta = 0
 					tmpPrevTime = dateParser(d['date'], d['time'])
 				else:
 					if(currentTimeDelta>tmpTimeDelta):
